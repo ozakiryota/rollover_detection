@@ -45,6 +45,7 @@ def test():
     ## dataset
     dataset = RolloverDataset(data_list, data_transformer, "train")
     ## debug
+    print("dataset.__len__() =", dataset.__len__())
     index = 0
     print("index", index, ": ", dataset.__getitem__(index)[0].size())
     print("index", index, ": ", dataset.__getitem__(index)[1])
