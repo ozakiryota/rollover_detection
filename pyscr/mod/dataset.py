@@ -22,7 +22,7 @@ class RolloverDataset(torch.utils.data.Dataset):
         acc_numpy = np.array(acc_list)
         ## tansform
         img_trans, label = self.data_transformer(img_pil, acc_numpy, phase=self.phase)
-        return img_trans, label
+        return img_trans, int(label)
 
 
 
@@ -33,8 +33,8 @@ def test():
     from data_transformer import DataTransformer
 
     ## data
-    dir_list = [os.environ['HOME'] + "/dataset/rollover_detection/airsim/sample"]
-    csv_name = "imu_camera.csv"
+    dir_list = [os.environ['HOME'] + '/dataset/rollover_detection/airsim/sample']
+    csv_name = 'imu_camera.csv'
     data_list = datalist_maker.makeDataList(dir_list, csv_name)
     ## transformer
     resize = 224
@@ -43,7 +43,7 @@ def test():
     min_rollover_angle_deg = 50.0
     data_transformer = DataTransformer(resize, mean, std, min_rollover_angle_deg)
     ## dataset
-    dataset = RolloverDataset(data_list, data_transformer, "train")
+    dataset = RolloverDataset(data_list, data_transformer, 'train')
     ## debug
     print("dataset.__len__() =", dataset.__len__())
     index = 0

@@ -14,8 +14,8 @@ def makeDataList(dir_list, csv_name):
 
 
 def test():
-    dir_list = [os.environ['HOME'] + "/dataset/rollover_detection/airsim/sample"]
-    csv_name = "imu_camera.csv"
+    dir_list = [os.environ['HOME'] + '/dataset/rollover_detection/airsim/sample']
+    csv_name = 'imu_camera.csv'
     data_list = makeDataList(dir_list, csv_name)
     ## debug
     # print(data_list)

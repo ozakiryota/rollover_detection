@@ -10,8 +10,8 @@ from mod.dataset import RolloverDataset
 
 def test():
     ## data
-    dir_list = [os.environ['HOME'] + "/dataset/rollover_detection/airsim/sample"]
-    csv_name = "imu_camera.csv"
+    dir_list = [os.environ['HOME'] + '/dataset/rollover_detection/airsim/sample']
+    csv_name = 'imu_camera.csv'
     data_list = makeDataList(dir_list, csv_name)
     ## transformer
     resize = 224
@@ -20,7 +20,7 @@ def test():
     min_rollover_angle_deg = 50.0
     data_transformer = DataTransformer(resize, mean, std, min_rollover_angle_deg)
     ## dataset
-    dataset = RolloverDataset(data_list, data_transformer, "train")
+    dataset = RolloverDataset(data_list, data_transformer, 'train')
     ## dataloader
     batch_size = 10
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)

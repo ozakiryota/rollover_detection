@@ -18,9 +18,9 @@ class DataTransformer():
         ])
         self.min_rollover_angle_deg = min_rollover_angle_deg
 
-    def __call__(self, img_pil, acc_numpy, phase="train"):
+    def __call__(self, img_pil, acc_numpy, phase='train'):
         ## augemntation
-        if phase == "train":
+        if phase == 'train':
             ## mirror
             is_mirror = bool(random.getrandbits(1))
             if is_mirror:
@@ -55,8 +55,8 @@ def test():
     from datalist_maker import makeDataList
 
     ## data
-    dir_list = [os.environ['HOME'] + "/dataset/rollover_detection/airsim/sample"]
-    csv_name = "imu_camera.csv"
+    dir_list = [os.environ['HOME'] + '/dataset/rollover_detection/airsim/sample']
+    csv_name = 'imu_camera.csv'
     data = makeDataList(dir_list, csv_name)[0]
     img_pil = Image.open(data[3])
     acc = [float(num) for num in data[:3]]

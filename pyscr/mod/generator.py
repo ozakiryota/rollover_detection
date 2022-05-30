@@ -38,11 +38,13 @@ def test():
     import torch
     
     ## network
-    gen_net = Generator(z_dim=20, img_size=112)
+    z_dim = 20
+    img_size = 112
+    gen_net = Generator(z_dim, 112)
     gen_net.train()
     ## generate
     batch_size = 10
-    input_z = torch.randn(batch_size, 20)
+    input_z = torch.randn(batch_size, z_dim)
     fake_imgs = gen_net(input_z)
     ## debug
     print("fake_imgs.size() =", fake_imgs.size())

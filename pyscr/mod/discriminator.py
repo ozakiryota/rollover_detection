@@ -48,7 +48,7 @@ def test():
     inputs_z = torch.randn(batch_size, z_dim)
     inputs_x = torch.randn(batch_size, 3, img_size, img_size)
     ## discriminate
-    dis_net = Discriminator(z_dim=20, img_size=img_size)
+    dis_net = Discriminator(z_dim, img_size)
     dis_outputs, _ = dis_net(inputs_x, inputs_z)
     ## debug
     print("dis_outputs.size() =", dis_outputs.size())
