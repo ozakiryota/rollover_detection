@@ -1,6 +1,5 @@
 ########## Pull ##########
-# FROM ubuntu:20.04
-FROM nvidia/cuda:10.2-base-ubuntu18.04
+FROM nvidia/cuda:11.1.1-base-ubuntu18.04
 ########## Non-interactive ##########
 ENV DEBIAN_FRONTEND=noninteractive
 ########## Common tools ##########
@@ -17,8 +16,8 @@ RUN apt-get update && \
 	    python3-pip && \
 	pip3 install --upgrade pip && \
 	pip3 install \
-		torch==1.10.1+cu102 \
-		torchvision==0.11.2+cu102 \
+		torch==1.10.1+cu111 \
+		torchvision==0.11.2+cu111 \
 		torchaudio==0.10.1 \
 		-f https://download.pytorch.org/whl/torch_stable.html
 ########## Cache busting ##########

@@ -40,15 +40,15 @@ def test():
     ## network
     z_dim = 20
     img_size = 112
-    gen_net = Generator(z_dim, 112)
+    gen_net = Generator(z_dim, img_size)
     gen_net.train()
     ## generate
     batch_size = 10
     input_z = torch.randn(batch_size, z_dim)
-    fake_imgs = gen_net(input_z)
+    fake_images = gen_net(input_z)
     ## debug
-    print("fake_imgs.size() =", fake_imgs.size())
-    fake_img_numpy = fake_imgs[0][0].detach().numpy()
+    print("fake_images.size() =", fake_images.size())
+    fake_img_numpy = fake_images[0].detach().numpy().transpose((1, 2, 0))
     plt.imshow(fake_img_numpy)
     plt.show()
 

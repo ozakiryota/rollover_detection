@@ -4,8 +4,8 @@ import torch
 import torch.nn as nn
 
 def train(gen_net, dis_net, enc_net, dataloader, num_epochs):
-    # device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    device = torch.device('cpu')
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    # device = torch.device('cpu')
     print("device =", device)
 
     lr_ge = 0.0001
@@ -18,7 +18,6 @@ def train(gen_net, dis_net, enc_net, dataloader, num_epochs):
     criterion = nn.BCEWithLogitsLoss(reduction='mean')
 
     z_dim = 20
-    # batch_size_in_loop = 64
 
     gen_net.to(device)
     enc_net.to(device)
@@ -30,7 +29,7 @@ def train(gen_net, dis_net, enc_net, dataloader, num_epochs):
 
     # torch.backends.cudnn.benchmark = True
 
-    num_train_imgs = len(dataloader.dataset)
+    num_train_images = len(dataloader.dataset)
     batch_size = dataloader.batch_size
 
     logs = []
@@ -107,10 +106,16 @@ def train(gen_net, dis_net, enc_net, dataloader, num_epochs):
             epoch_gen_loss += gen_loss.item()
             epoch_enc_loss += enc_loss.item()
 
-        # epochのphaseごとのlossと正解率
         epoch_end_clock = time.time()
         print("Epoch_D_Loss:{:.4f} | Epoch_G_Loss:{:.4f} | Epoch_E_Loss:{:.4f}".format(epoch_dis_loss/batch_size, epoch_gen_loss/batch_size, epoch_enc_loss/batch_size))
         print("timer: {:.4f} sec.".format(epoch_end_clock - epoch_start_clock))
+
+    ## save
+    save_weights_dir = '../../weights'
+    os.makedirs(save_weights_dir, exist_ok=True)
+    save_gen_weights_path = os.path.join(save_weights_dir, 'generator.pth')
+    torch.save(gen_net.state_dict(), save_gen_weights_path)
+    print("Save:", save_gen_weights_path)
 
     return gen_net, dis_net, enc_net
 
@@ -130,7 +135,8 @@ if __name__ == '__main__':
     z_dim = 20
     img_size = 112
     ## data
-    dir_list = [os.environ['HOME'] + '/dataset/rollover_detection/airsim/sample']
+    # dir_list = [os.environ['HOME'] + '/dataset/rollover_detection/airsim/sample']
+    dir_list = [os.environ['HOME'] + '/dataset/rollover_detection/airsim/5deg']
     csv_name = 'imu_camera.csv'
     data_list = makeDataList(dir_list, csv_name)
     ## transformer
@@ -141,12 +147,12 @@ if __name__ == '__main__':
     ## dataset
     dataset = RolloverDataset(data_list, data_transformer, 'train')
     ## dataloader
-    batch_size = 10
+    batch_size = 100
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
     ## network
     gen_net = Generator(z_dim, img_size)
     dis_net = Discriminator(z_dim, img_size)
     enc_net = Encoder(z_dim, img_size)
     ## train
-    num_epochs = 10
+    num_epochs = 100
     trained_gen_net, trained_dis_net, trained_enc_net = train(gen_net, dis_net, enc_net, dataloader, num_epochs)
