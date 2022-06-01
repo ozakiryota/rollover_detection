@@ -5,7 +5,6 @@ import torch.nn as nn
 
 def train(gen_net, dis_net, enc_net, dataloader, num_epochs):
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    # device = torch.device('cpu')
     print("device =", device)
 
     lr_ge = 0.0001
@@ -114,8 +113,14 @@ def train(gen_net, dis_net, enc_net, dataloader, num_epochs):
     save_weights_dir = '../../weights'
     os.makedirs(save_weights_dir, exist_ok=True)
     save_gen_weights_path = os.path.join(save_weights_dir, 'generator.pth')
+    save_dis_weights_path = os.path.join(save_weights_dir, 'discriminator.pth')
+    save_enc_weights_path = os.path.join(save_weights_dir, 'encoder.pth')
     torch.save(gen_net.state_dict(), save_gen_weights_path)
+    torch.save(dis_net.state_dict(), save_dis_weights_path)
+    torch.save(enc_net.state_dict(), save_enc_weights_path)
     print("Save:", save_gen_weights_path)
+    print("Save:", save_dis_weights_path)
+    print("Save:", save_enc_weights_path)
 
     return gen_net, dis_net, enc_net
 
