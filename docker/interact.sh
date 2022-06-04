@@ -14,4 +14,5 @@ docker run \
 	-v $HOME/dataset/rollover_detection:/root/dataset/rollover_detection \
 	-v $(pwd)/../pyscr:/root/$image/pyscr \
 	-v $(pwd)/../weights:/root/$image/weights \
+	-v $(pwd)/../fig:/root/$image/fig \
 	$image:$tag

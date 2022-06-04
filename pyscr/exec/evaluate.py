@@ -1,3 +1,6 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
 import torch
 
 import sys
@@ -12,6 +15,10 @@ def evaluate(dataset, gen_net, dis_net, enc_net):
     dis_net.eval().to(device)
     enc_net.eval().to(device)
 
+    real_image_list = []
+    reconstracted_image_list = []
+    score_list = []
+
     for i in range(len(dataset)):
         real_image = dataset.__getitem__(i)[0].unsqueeze(0).to(device)
 
@@ -23,6 +30,49 @@ def evaluate(dataset, gen_net, dis_net, enc_net):
 
         anomaly_score = computeAnomalyScore(real_image, reconstracted_image, real_feature, reconstracted_feature)
         print("anomaly_score =", anomaly_score)
+
+        real_image_list.append(real_image.squeeze(0))
+        reconstracted_image_list.append(reconstracted_image.squeeze(0))
+        score_list.append(anomaly_score.item())
+
+    ## sort
+    sorted_indicies = np.argsort(score_list)
+
+    h = 5
+    w = 10
+    num_shown = h * w
+
+    show_reconstracted_image = True
+    if show_reconstracted_image:
+        h = 2 * h
+
+    scale = 1.5
+    plt.rcParams["figure.figsize"] = (scale * h, scale * w)
+
+    for i, index in enumerate(sorted_indicies):
+    # for i, index in enumerate(sorted_indicies[::-1]):
+        subplot_index = i + 1
+        if subplot_index > num_shown:
+            break
+        
+        if show_reconstracted_image:
+            subplot_index = 2 * w * (i // w) + (i % w) + 1
+            reconstracted_image_numpy = reconstracted_image_list[index].cpu().detach().numpy()
+            reconstracted_image_numpy = np.clip(reconstracted_image_numpy.transpose((1, 2, 0)), 0, 1)
+            plt.subplot(h, w, subplot_index + w, xlabel="g(e(x" + str(i + 1) + "))")
+            plt.tick_params(labelbottom=False, labelleft=False, bottom=False, left=False)
+            plt.imshow(reconstracted_image_numpy)
+
+        real_image_numpy = real_image_list[index].cpu().detach().numpy()
+        real_image_numpy = np.clip(real_image_numpy.transpose((1, 2, 0)), 0, 1)
+        plt.subplot(h, w, subplot_index, xlabel="x" + str(i + 1))
+        plt.tick_params(labelbottom=False, labelleft=False, bottom=False, left=False)
+        plt.imshow(real_image_numpy)
+    plt.tight_layout()
+    os.makedirs('../../fig', exist_ok=True)
+    plt.savefig("../../fig/top10.png")
+    plt.show()
+
 
 import os
 
@@ -38,8 +88,8 @@ if __name__ == '__main__':
     z_dim = 20
     img_size = 112
     ## data
-    dir_list = [os.environ['HOME'] + '/dataset/rollover_detection/airsim/sample']
-    # dir_list = [os.environ['HOME'] + '/dataset/rollover_detection/airsim/90deg']
+    # dir_list = [os.environ['HOME'] + '/dataset/rollover_detection/airsim/sample']
+    dir_list = [os.environ['HOME'] + '/dataset/rollover_detection/airsim/90deg']
     csv_name = 'imu_camera.csv'
     data_list = makeDataList(dir_list, csv_name)
     ## transformer
