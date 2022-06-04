@@ -171,8 +171,8 @@ class Trainer:
             loss_record.append([dis_epoch_loss / num_data, gen_epoch_loss / num_data, enc_epoch_loss / num_data])
             print("loss: dis {:.4f} | gen {:.4f} | enc {:.4f}".format(loss_record[-1][0], loss_record[-1][1], loss_record[-1][2]))
             print("epoch time: {:.1f} sec".format(time.time() - epoch_start_clock))
+            print("total time: {:.1f} min".format((time.time() - start_clock) / 60))
         print("-------------")
-        print("total time: {:.1f} min".format((time.time() - start_clock) / 60))
         ## save
         self.saveLossGraph(loss_record)
         self.saveWeights()
