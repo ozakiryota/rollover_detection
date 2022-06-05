@@ -5,25 +5,34 @@ class Discriminator(nn.Module):
     def __init__(self, z_dim, img_size):
         super(Discriminator, self).__init__()
 
-        z_fc_out_dim = 512
-        fc1_in_dim = 64 * (img_size // 4) * (img_size // 4) + z_fc_out_dim
+        num_conv = 4
+        z_fc_out_dim = 8 * img_size
+        fc1_in_dim = 8 * img_size * (img_size // (2 ** num_conv)) * (img_size // (2 ** num_conv)) + z_fc_out_dim
 
         self.x_conv = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=4, stride=2, padding=1),
+            nn.Conv2d(3, img_size, kernel_size=4, stride=2, padding=1),
             nn.LeakyReLU(0.1, inplace=True),
 
-            nn.Conv2d(64, 64, kernel_size=4, stride=2, padding=1),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(img_size, 2 * img_size, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(2 * img_size),
+            nn.LeakyReLU(0.1, inplace=True),
+
+            nn.Conv2d(2 * img_size, 4 * img_size, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(4 * img_size),
+            nn.LeakyReLU(0.1, inplace=True),
+
+            nn.Conv2d(4 * img_size, 8 * img_size, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(8 * img_size),
             nn.LeakyReLU(0.1, inplace=True)
         )
 
         self.z_fc = nn.Linear(z_dim, z_fc_out_dim)
 
         self.fc1 = nn.Sequential(
-            nn.Linear(fc1_in_dim, 1024),
+            nn.Linear(fc1_in_dim, fc1_in_dim // 2),
             nn.LeakyReLU(0.1, inplace=True)
         )
-        self.fc2 = nn.Linear(1024, 1)
+        self.fc2 = nn.Linear(fc1_in_dim // 2, 1)
 
     def forward(self, x, z):
         x_outputs = self.x_conv(x)
@@ -51,6 +60,7 @@ def test():
     dis_net = Discriminator(z_dim, img_size)
     dis_outputs, _ = dis_net(inputs_x, inputs_z)
     ## debug
+    print(dis_net)
     print("dis_outputs.size() =", dis_outputs.size())
     print(nn.Sigmoid()(dis_outputs))
 

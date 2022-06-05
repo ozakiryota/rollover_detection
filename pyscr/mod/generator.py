@@ -4,24 +4,35 @@ class Generator(nn.Module):
     def __init__(self, z_dim, img_size):
         super(Generator, self).__init__()
 
-        self.feature_size = img_size // 4
+        num_deconv = 4
+        self.feature_size = img_size // (2 ** num_deconv)
+        feature_ch = (2 ** (num_deconv - 1)) * img_size
+        feature_dim = feature_ch * self.feature_size * self.feature_size
 
         self.fc = nn.Sequential(
-            nn.Linear(z_dim, 1024),
-            nn.BatchNorm1d(1024),
+            nn.Linear(z_dim, feature_dim // 2),
+            nn.BatchNorm1d(feature_dim // 2),
             nn.ReLU(inplace=True),
 
-            nn.Linear(1024, self.feature_size * self.feature_size * 128),
-            nn.BatchNorm1d(self.feature_size * self.feature_size * 128),
+            nn.Linear(feature_dim // 2, feature_dim),
+            nn.BatchNorm1d(feature_dim),
             nn.ReLU(inplace=True)
         )
 
         self.deconv = nn.Sequential(
-            nn.ConvTranspose2d(in_channels=128, out_channels=64, kernel_size=4, stride=2, padding=1),
-            nn.BatchNorm2d(64),
+            nn.ConvTranspose2d(8 * img_size, 4 * img_size, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(4 * img_size),
             nn.ReLU(inplace=True),
 
-            nn.ConvTranspose2d(in_channels=64, out_channels=3, kernel_size=4, stride=2, padding=1),
+            nn.ConvTranspose2d(4 * img_size, 2 * img_size, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(2 * img_size),
+            nn.ReLU(inplace=True),
+
+            nn.ConvTranspose2d(2 * img_size, img_size, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(img_size),
+            nn.ReLU(inplace=True),
+
+            nn.ConvTranspose2d(img_size, 3, kernel_size=4, stride=2, padding=1),
             nn.Tanh()
         )
 
@@ -33,6 +44,7 @@ class Generator(nn.Module):
 
 
 def test():
+    import numpy as np
     import matplotlib.pyplot as plt
     
     import torch
@@ -47,8 +59,9 @@ def test():
     input_z = torch.randn(batch_size, z_dim)
     fake_images = gen_net(input_z)
     ## debug
+    print(gen_net)
     print("fake_images.size() =", fake_images.size())
-    fake_img_numpy = fake_images[0].detach().numpy().transpose((1, 2, 0))
+    fake_img_numpy = np.clip(fake_images[0].detach().numpy().transpose((1, 2, 0)), 0, 1)
     plt.imshow(fake_img_numpy)
     plt.show()
 

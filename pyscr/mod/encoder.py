@@ -4,19 +4,22 @@ class Encoder(nn.Module):
     def __init__(self, z_dim, img_size):
         super(Encoder, self).__init__()
 
-        conv_out_ch = 128
-        fc_in_dim = conv_out_ch * (img_size // 4) * (img_size // 4)
+        fc_in_dim = 4 * img_size * (img_size // 8) * (img_size // 8)
 
         self.conv = nn.Sequential(
-            nn.Conv2d(3, 32, kernel_size=3, stride=1),
+            nn.Conv2d(3, img_size // 2, kernel_size=3, stride=1),
             nn.LeakyReLU(0.1, inplace=True),
 
-            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(img_size // 2, img_size, kernel_size=3, stride=2, padding=1),
+            nn.BatchNorm2d(img_size),
             nn.LeakyReLU(0.1, inplace=True),
 
-            nn.Conv2d(64, conv_out_ch, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(conv_out_ch),
+            nn.Conv2d(img_size, 2 * img_size, kernel_size=3, stride=2, padding=1),
+            nn.BatchNorm2d(2 * img_size),
+            nn.LeakyReLU(0.1, inplace=True),
+
+            nn.Conv2d(2 * img_size, 4 * img_size, kernel_size=3, stride=2, padding=1),
+            nn.BatchNorm2d(4 * img_size),
             nn.LeakyReLU(0.1, inplace=True)
         )
 
@@ -41,6 +44,7 @@ def test():
     enc_net = Encoder(z_dim, img_size)
     z = enc_net(inputs)
     ## debug
+    print(enc_net)
     print("z.size() =", z.size())
     print("z[0] =", z[0])
 

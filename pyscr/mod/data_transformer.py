@@ -14,7 +14,7 @@ class DataTransformer():
             transforms.Resize(resize),
             transforms.CenterCrop(resize),
             transforms.ToTensor(),
-            transforms.Normalize(mean, std)
+            # transforms.Normalize(mean, std)
         ])
         self.min_rollover_angle_deg = min_rollover_angle_deg
 
