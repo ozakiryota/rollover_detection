@@ -1,10 +1,12 @@
 import argparse
 import os
 import time
+import datetime
 import matplotlib.pyplot as plt
 
 import torch
 import torch.nn as nn
+from tensorboardX import SummaryWriter
 
 import sys
 sys.path.append('../')
@@ -30,10 +32,13 @@ class Trainer:
         arg_parser.add_argument('--img_size', type=int, default=112)
         arg_parser.add_argument('--z_dim', type=int, default=100)
         arg_parser.add_argument('--batch_size', type=int, default=100)
+        arg_parser.add_argument('--lr_dis', type=float, default=5e-5)
+        arg_parser.add_argument('--lr_gen', type=float, default=1e-5)
+        arg_parser.add_argument('--lr_enc', type=float, default=1e-5)
         arg_parser.add_argument('--num_epochs', type=int, default=100)
+        arg_parser.add_argument('--save_log_dir', default='../../log')
         arg_parser.add_argument('--save_weights_dir', default='../../weights')
         arg_parser.add_argument('--save_fig_dir', default='../../fig')
-        # arg_parser.add_argument('--flag', action='store_true')
 
         return arg_parser.parse_args()
 
@@ -72,6 +77,9 @@ class Trainer:
         info_str = str(len(self.dataloader.dataset)) + 'sample' \
             + str(self.args.img_size) + 'pixel' \
             + str(self.args.z_dim) + 'z' \
+            + str(self.args.lr_dis) + 'lrd' \
+            + str(self.args.lr_gen) + 'lrg' \
+            + str(self.args.lr_enc) + 'lre' \
             + str(self.args.batch_size) + 'batch' \
             + str(self.args.num_epochs) + 'epoch'
 
@@ -81,18 +89,18 @@ class Trainer:
         return info_str
 
     def train(self):
-        lr_ge = 0.0001
-        lr_d = 0.0001 / 4
         beta1, beta2 = 0.5, 0.999
-        dis_optimizer = torch.optim.Adam(self.dis_net.parameters(), lr_d, [beta1, beta2])
-        gen_optimizer = torch.optim.Adam(self.gen_net.parameters(), lr_ge, [beta1, beta2])
-        enc_optimizer = torch.optim.Adam(self.enc_net.parameters(), lr_ge, [beta1, beta2])
+        dis_optimizer = torch.optim.Adam(self.dis_net.parameters(), self.args.lr_dis, [beta1, beta2])
+        gen_optimizer = torch.optim.Adam(self.gen_net.parameters(), self.args.lr_gen, [beta1, beta2])
+        enc_optimizer = torch.optim.Adam(self.enc_net.parameters(), self.args.lr_enc, [beta1, beta2])
 
         criterion = nn.BCEWithLogitsLoss(reduction='sum')
 
         # torch.backends.cudnn.benchmark = True
         
         ## buffer
+        save_log_dir = os.path.join(self.args.save_log_dir, datetime.datetime.now().strftime("%Y%m%d_%H%M%S_") + self.info_str)
+        tb_writer = SummaryWriter(logdir=save_log_dir)
         loss_record = []
         start_clock = time.time()
 
@@ -169,13 +177,15 @@ class Trainer:
                 enc_epoch_loss += enc_loss.item()
             num_data = len(self.dataloader.dataset)
             loss_record.append([dis_epoch_loss / num_data, gen_epoch_loss / num_data, enc_epoch_loss / num_data])
+            tb_writer.add_scalars("loss", {"dis": loss_record[-1][0], "gen": loss_record[-1][1], "enc": loss_record[-1][2]}, epoch)
             print("loss: dis {:.4f} | gen {:.4f} | enc {:.4f}".format(loss_record[-1][0], loss_record[-1][1], loss_record[-1][2]))
             print("epoch time: {:.1f} sec".format(time.time() - epoch_start_clock))
             print("total time: {:.1f} min".format((time.time() - start_clock) / 60))
         print("-------------")
         ## save
-        self.saveLossGraph(loss_record)
+        tb_writer.close()
         self.saveWeights()
+        self.saveLossGraph(loss_record)
 
     def saveLossGraph(self, loss_record):
         loss_record_trans = list(zip(*loss_record))
@@ -185,7 +195,7 @@ class Trainer:
         plt.legend()
         plt.xlabel("Epoch")
         plt.ylabel("Loss")
-        plt.title("loss: dis=" + str(loss_record[-1][0]) + ", gen=" + str(loss_record[-1][1]) + ", enc=" + str(loss_record[-1][2]))
+        plt.title("loss: dis=" + '{:.4f}'.format(loss_record[-1][0]) + ", gen=" + '{:.4f}'.format(loss_record[-1][1]) + ", enc=" + '{:.4f}'.format(loss_record[-1][2]))
 
         fig_save_path = os.path.join(self.args.save_fig_dir, self.info_str + '.jpg')
         plt.savefig(fig_save_path)

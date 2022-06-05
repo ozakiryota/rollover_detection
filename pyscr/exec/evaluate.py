@@ -88,10 +88,12 @@ class Evaluator:
 
     def evaluate(self):
         images_list = []
+        label_list = []
         score_list = []
 
         for i in range(len(self.dataset)):
             real_image = self.dataset.__getitem__(i)[0].unsqueeze(0).to(self.device)
+            label = self.dataset.__getitem__(i)[1]
 
             z = self.enc_net(real_image)
             reconstracted_image = self.gen_net(z)
@@ -102,18 +104,19 @@ class Evaluator:
             anomaly_score = computeAnomalyScore(real_image, reconstracted_image, real_feature, reconstracted_feature).item()
             print("anomaly_score =", anomaly_score)
 
-            images_list.append([real_image.squeeze(0), reconstracted_image.squeeze(0)])
+            images_list.append([real_image.squeeze(0).cpu().detach().numpy(), reconstracted_image.squeeze(0).cpu().detach().numpy()])
+            label_list.append(label)
             score_list.append(anomaly_score)
 
         ## save
         sorted_indicies = np.argsort(score_list)
-        self.saveSortedImages(images_list, sorted_indicies, self.args.show_h, self.args.show_w,
+        self.saveSortedImages(images_list, label_list, sorted_indicies, self.args.show_h, self.args.show_w,
             'top' + str(self.args.show_h * self.args.show_w) + '_largest_score.png')
-        self.saveSortedImages(images_list, sorted_indicies[::-1], self.args.show_h, self.args.show_w,
+        self.saveSortedImages(images_list, label_list, sorted_indicies[::-1], self.args.show_h, self.args.show_w,
             'top' + str(self.args.show_h * self.args.show_w) + '_smallest_score.png')
         plt.show()
 
-    def saveSortedImages(self, images_list, indicies, h, w, save_name):
+    def saveSortedImages(self, images_list, label_list, indicies, h, w, save_name):
         num_shown = h * w
 
         if self.args.flag_show_reconstracted_images:
@@ -129,15 +132,16 @@ class Evaluator:
             
             if self.args.flag_show_reconstracted_images:
                 subplot_index = 2 * w * (i // w) + (i % w) + 1
-                reconstracted_image_numpy = images_list[index][1].cpu().detach().numpy()
+                reconstracted_image_numpy = images_list[index][1]
                 reconstracted_image_numpy = np.clip(reconstracted_image_numpy.transpose((1, 2, 0)), 0, 1)
                 plt.subplot(h, w, subplot_index + w, xlabel="g(e(x" + str(i + 1) + "))")
                 plt.tick_params(labelbottom=False, labelleft=False, bottom=False, left=False)
                 plt.imshow(reconstracted_image_numpy)
 
-            real_image_numpy = images_list[index][0].cpu().detach().numpy()
+            real_image_numpy = images_list[index][0]
             real_image_numpy = np.clip(real_image_numpy.transpose((1, 2, 0)), 0, 1)
-            plt.subplot(h, w, subplot_index, xlabel="x" + str(i + 1))
+            sub_title = "rollover" if label_list[index] else ""
+            plt.subplot(h, w, subplot_index, xlabel="x" + str(i + 1), ylabel=sub_title)
             plt.tick_params(labelbottom=False, labelleft=False, bottom=False, left=False)
             plt.imshow(real_image_numpy)
         plt.tight_layout()
