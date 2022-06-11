@@ -1,5 +1,9 @@
 import torch.nn as nn
 
+import sys
+sys.path.append('../')
+from mod.weights_initializer import initWeights
+
 class Encoder(nn.Module):
     def __init__(self, z_dim, img_size):
         super(Encoder, self).__init__()
@@ -23,7 +27,17 @@ class Encoder(nn.Module):
             nn.LeakyReLU(0.1, inplace=True)
         )
 
-        self.fc = nn.Linear(fc_in_dim, z_dim)
+        self.fc = nn.Sequential(
+            nn.Linear(fc_in_dim, fc_in_dim // 8),
+            nn.ReLU(inplace=True),
+
+            nn.Linear(fc_in_dim // 8, fc_in_dim // 16),
+            nn.ReLU(inplace=True),
+
+            nn.Linear(fc_in_dim // 16, z_dim)
+        )
+
+        self.apply(initWeights)
 
     def forward(self, x):
         outputs = self.conv(x)

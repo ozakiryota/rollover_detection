@@ -28,7 +28,7 @@ class Evaluator:
         arg_parser.add_argument('--csv_name', default='imu_camera.csv')
         arg_parser.add_argument('--img_size', type=int, default=112)
         arg_parser.add_argument('--z_dim', type=int, default=100)
-        arg_parser.add_argument('--weights_dir', default='../../weights')
+        arg_parser.add_argument('--load_weights_dir', default='../../weights')
         arg_parser.add_argument('--save_fig_dir', default='../../fig')
         arg_parser.add_argument('--flag_show_reconstracted_images', action='store_true')
         arg_parser.add_argument('--show_h', type=int, default=5)
@@ -55,9 +55,9 @@ class Evaluator:
         gen_net = Generator(self.args.z_dim, self.args.img_size)
         enc_net = Encoder(self.args.z_dim, self.args.img_size)
 
-        gen_weights_path = os.path.join(self.args.weights_dir, 'generator.pth')
-        dis_weights_path = os.path.join(self.args.weights_dir, 'discriminator.pth')
-        enc_weights_path = os.path.join(self.args.weights_dir, 'encoder.pth')
+        gen_weights_path = os.path.join(self.args.load_weights_dir, 'generator.pth')
+        dis_weights_path = os.path.join(self.args.load_weights_dir, 'discriminator.pth')
+        enc_weights_path = os.path.join(self.args.load_weights_dir, 'encoder.pth')
         if torch.cuda.is_available():
             loaded_gen_weights = torch.load(gen_weights_path)
             print("load [GPU -> GPU]:", gen_weights_path)
@@ -111,9 +111,9 @@ class Evaluator:
         ## save
         sorted_indicies = np.argsort(score_list)
         self.saveSortedImages(images_list, label_list, sorted_indicies, self.args.show_h, self.args.show_w,
-            'top' + str(self.args.show_h * self.args.show_w) + '_largest_score.png')
-        self.saveSortedImages(images_list, label_list, sorted_indicies[::-1], self.args.show_h, self.args.show_w,
             'top' + str(self.args.show_h * self.args.show_w) + '_smallest_score.png')
+        self.saveSortedImages(images_list, label_list, sorted_indicies[::-1], self.args.show_h, self.args.show_w,
+            'top' + str(self.args.show_h * self.args.show_w) + '_largest_score.png')
         plt.show()
 
     def saveSortedImages(self, images_list, label_list, indicies, h, w, save_name):

@@ -1,5 +1,9 @@
 import torch.nn as nn
 
+import sys
+sys.path.append('../')
+from mod.weights_initializer import initWeights
+
 class Generator(nn.Module):
     def __init__(self, z_dim, img_size):
         super(Generator, self).__init__()
@@ -10,7 +14,11 @@ class Generator(nn.Module):
         feature_dim = feature_ch * self.feature_size * self.feature_size
 
         self.fc = nn.Sequential(
-            nn.Linear(z_dim, feature_dim // 2),
+            nn.Linear(z_dim, feature_dim // 4),
+            nn.BatchNorm1d(feature_dim // 4),
+            nn.ReLU(inplace=True),
+
+            nn.Linear(feature_dim // 4, feature_dim // 2),
             nn.BatchNorm1d(feature_dim // 2),
             nn.ReLU(inplace=True),
 
@@ -20,7 +28,7 @@ class Generator(nn.Module):
         )
 
         self.deconv = nn.Sequential(
-            nn.ConvTranspose2d(8 * img_size, 4 * img_size, kernel_size=4, stride=2, padding=1),
+            nn.ConvTranspose2d(feature_ch, 4 * img_size, kernel_size=4, stride=2, padding=1),
             nn.BatchNorm2d(4 * img_size),
             nn.ReLU(inplace=True),
 
@@ -35,6 +43,8 @@ class Generator(nn.Module):
             nn.ConvTranspose2d(img_size, 3, kernel_size=4, stride=2, padding=1),
             nn.Tanh()
         )
+
+        self.apply(initWeights)
 
     def forward(self, z):
         outputs = self.fc(z)

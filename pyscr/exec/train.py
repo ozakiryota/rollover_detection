@@ -32,6 +32,7 @@ class Trainer:
         arg_parser.add_argument('--img_size', type=int, default=112)
         arg_parser.add_argument('--z_dim', type=int, default=100)
         arg_parser.add_argument('--batch_size', type=int, default=100)
+        arg_parser.add_argument('--load_weights_dir')
         arg_parser.add_argument('--lr_dis', type=float, default=5e-5)
         arg_parser.add_argument('--lr_gen', type=float, default=1e-5)
         arg_parser.add_argument('--lr_enc', type=float, default=1e-5)
@@ -63,6 +64,28 @@ class Trainer:
         gen_net = Generator(self.args.z_dim, self.args.img_size)
         enc_net = Encoder(self.args.z_dim, self.args.img_size)
 
+        if self.args.load_weights_dir is not None:
+            gen_weights_path = os.path.join(self.args.load_weights_dir, 'generator.pth')
+            dis_weights_path = os.path.join(self.args.load_weights_dir, 'discriminator.pth')
+            enc_weights_path = os.path.join(self.args.load_weights_dir, 'encoder.pth')
+            if torch.cuda.is_available():
+                loaded_gen_weights = torch.load(gen_weights_path)
+                print("load [GPU -> GPU]:", gen_weights_path)
+                loaded_dis_weights = torch.load(dis_weights_path)
+                print("load [GPU -> GPU]:", dis_weights_path)
+                loaded_enc_weights = torch.load(enc_weights_path)
+                print("load [GPU -> GPU]:", enc_weights_path)
+            else:
+                loaded_gen_weights = torch.load(gen_weights_path, map_location={"cuda:0": "cpu"})
+                print("load [GPU -> CPU]:", gen_weights_path)
+                loaded_dis_weights = torch.load(dis_weights_path, map_location={"cuda:0": "cpu"})
+                print("load [GPU -> CPU]:", dis_weights_path)
+                loaded_enc_weights = torch.load(enc_weights_path, map_location={"cuda:0": "cpu"})
+                print("load [GPU -> CPU]:", enc_weights_path)
+            gen_net.load_state_dict(loaded_gen_weights)
+            dis_net.load_state_dict(loaded_dis_weights)
+            enc_net.load_state_dict(loaded_enc_weights)
+
         dis_net.to(self.device)
         gen_net.to(self.device)
         enc_net.to(self.device)
@@ -82,6 +105,9 @@ class Trainer:
             + str(self.args.lr_enc) + 'lre' \
             + str(self.args.batch_size) + 'batch' \
             + str(self.args.num_epochs) + 'epoch'
+        if self.args.load_weights_dir is not None:
+            insert_index = info_str.find('epoch')
+            info_str = info_str[:insert_index] + '+' + info_str[insert_index:]
 
         print("self.device =", self.device)
         print("info_str =", info_str)

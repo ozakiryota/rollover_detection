@@ -1,6 +1,10 @@
 import torch
 import torch.nn as nn
 
+import sys
+sys.path.append('../')
+from mod.weights_initializer import initWeights
+
 class Discriminator(nn.Module):
     def __init__(self, z_dim, img_size):
         super(Discriminator, self).__init__()
@@ -30,9 +34,14 @@ class Discriminator(nn.Module):
 
         self.fc1 = nn.Sequential(
             nn.Linear(fc1_in_dim, fc1_in_dim // 2),
+            nn.LeakyReLU(0.1, inplace=True),
+
+            nn.Linear(fc1_in_dim // 2, fc1_in_dim // 4),
             nn.LeakyReLU(0.1, inplace=True)
         )
-        self.fc2 = nn.Linear(fc1_in_dim // 2, 1)
+        self.fc2 = nn.Linear(fc1_in_dim // 4, 1)
+
+        self.apply(initWeights)
 
     def forward(self, x, z):
         x_outputs = self.x_conv(x)

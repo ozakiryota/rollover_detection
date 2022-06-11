@@ -1,4 +1,5 @@
 log/*
 weights/*
 fig/*
+keep/*
 __pycache__
