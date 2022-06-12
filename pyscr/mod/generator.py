@@ -9,46 +9,33 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
 
         num_deconv = 4
-        self.feature_size = img_size // (2 ** num_deconv)
-        feature_ch = (2 ** (num_deconv - 1)) * img_size
-        feature_dim = feature_ch * self.feature_size * self.feature_size
-
-        self.fc = nn.Sequential(
-            nn.Linear(z_dim, feature_dim // 4),
-            nn.BatchNorm1d(feature_dim // 4),
-            nn.ReLU(inplace=True),
-
-            nn.Linear(feature_dim // 4, feature_dim // 2),
-            nn.BatchNorm1d(feature_dim // 2),
-            nn.ReLU(inplace=True),
-
-            nn.Linear(feature_dim // 2, feature_dim),
-            nn.BatchNorm1d(feature_dim),
-            nn.ReLU(inplace=True)
-        )
+        first_deconv_kernel = img_size // (2 ** num_deconv)
 
         self.deconv = nn.Sequential(
-            nn.ConvTranspose2d(feature_ch, 4 * img_size, kernel_size=4, stride=2, padding=1),
-            nn.BatchNorm2d(4 * img_size),
-            nn.ReLU(inplace=True),
+            nn.ConvTranspose2d(z_dim, 256, kernel_size=first_deconv_kernel, stride=1, bias=False),
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(0.2),
 
-            nn.ConvTranspose2d(4 * img_size, 2 * img_size, kernel_size=4, stride=2, padding=1),
-            nn.BatchNorm2d(2 * img_size),
-            nn.ReLU(inplace=True),
+            nn.ConvTranspose2d(256, 128, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(128),
+            nn.LeakyReLU(0.2),
 
-            nn.ConvTranspose2d(2 * img_size, img_size, kernel_size=4, stride=2, padding=1),
-            nn.BatchNorm2d(img_size),
-            nn.ReLU(inplace=True),
+            nn.ConvTranspose2d(128, 64, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(64),
+            nn.LeakyReLU(0.2),
 
-            nn.ConvTranspose2d(img_size, 3, kernel_size=4, stride=2, padding=1),
+            nn.ConvTranspose2d(64, 32, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(32),
+            nn.LeakyReLU(0.2),
+
+            nn.ConvTranspose2d(32, 3, kernel_size=4, stride=2, padding=1, bias=False),
             nn.Tanh()
         )
 
         self.apply(initWeights)
 
     def forward(self, z):
-        outputs = self.fc(z)
-        outputs = outputs.view(z.size(0), -1, self.feature_size, self.feature_size)
+        outputs = z.view(z.size(0), -1, 1, 1)
         outputs = self.deconv(outputs)
         return outputs
 

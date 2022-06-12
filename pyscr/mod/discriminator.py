@@ -10,50 +10,58 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
 
         num_conv = 4
-        z_fc_out_dim = 8 * img_size
-        fc1_in_dim = 8 * img_size * (img_size // (2 ** num_conv)) * (img_size // (2 ** num_conv)) + z_fc_out_dim
+        last_x_conv_kernel = img_size // (2 ** num_conv)
 
         self.x_conv = nn.Sequential(
-            nn.Conv2d(3, img_size, kernel_size=4, stride=2, padding=1),
+            nn.Conv2d(3, 32, kernel_size=4, stride=2, padding=1),
             nn.LeakyReLU(0.1, inplace=True),
+            nn.Dropout2d(p=0.3),
 
-            nn.Conv2d(img_size, 2 * img_size, kernel_size=4, stride=2, padding=1),
-            nn.BatchNorm2d(2 * img_size),
+            nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(64),
             nn.LeakyReLU(0.1, inplace=True),
+            nn.Dropout2d(p=0.3),
 
-            nn.Conv2d(2 * img_size, 4 * img_size, kernel_size=4, stride=2, padding=1),
-            nn.BatchNorm2d(4 * img_size),
+            nn.Conv2d(64, 128, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(128),
             nn.LeakyReLU(0.1, inplace=True),
+            nn.Dropout2d(p=0.3),
 
-            nn.Conv2d(4 * img_size, 8 * img_size, kernel_size=4, stride=2, padding=1),
-            nn.BatchNorm2d(8 * img_size),
-            nn.LeakyReLU(0.1, inplace=True)
+            nn.Conv2d(128, 256, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(0.1, inplace=True),
+            nn.Dropout2d(p=0.3),
+            
+            nn.Conv2d(256, 256, kernel_size=last_x_conv_kernel, stride=1)
         )
 
-        self.z_fc = nn.Linear(z_dim, z_fc_out_dim)
-
-        self.fc1 = nn.Sequential(
-            nn.Linear(fc1_in_dim, fc1_in_dim // 2),
+        self.z_conv = nn.Sequential(
+            nn.Conv2d(z_dim, 256, kernel_size=1, stride=1),
             nn.LeakyReLU(0.1, inplace=True),
-
-            nn.Linear(fc1_in_dim // 2, fc1_in_dim // 4),
-            nn.LeakyReLU(0.1, inplace=True)
+            nn.Dropout2d(p=0.2)
         )
-        self.fc2 = nn.Linear(fc1_in_dim // 4, 1)
+
+        self.xz_conv1 = nn.Sequential(
+            nn.Conv2d(512, 512, kernel_size=1, stride=1),
+            nn.LeakyReLU(0.1, inplace=False),
+            nn.Dropout2d(p=0.2)
+        )
+
+        self.xz_conv2 = nn.Conv2d(512, 1, kernel_size=1, stride=1)
 
         self.apply(initWeights)
 
     def forward(self, x, z):
         x_outputs = self.x_conv(x)
-        z_outputs = self.z_fc(z)
+        z_outputs = self.z_conv(z.view(z.size(0), -1, 1, 1))
 
-        x_outputs = x_outputs.view(x.size(0), -1)
         outputs = torch.cat([x_outputs, z_outputs], dim=1)
 
-        outputs = self.fc1(outputs)
-        feature = outputs
+        outputs = self.xz_conv1(outputs)
+        feature = outputs.view(x.size(0), -1)
 
-        outputs = self.fc2(outputs)
+        outputs = self.xz_conv2(outputs)
+        outputs = outputs.view(x.size(0), -1)
 
         return outputs, feature
 

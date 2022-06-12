@@ -4,7 +4,7 @@ def initWeights(m):
     class_name = m.__class__.__name__
     if class_name.find('Conv') != -1:
         nn.init.normal_(m.weight.data, 0.0, 0.02)
-        nn.init.constant_(m.bias.data, 0)
+        # nn.init.constant_(m.bias.data, 0)
     elif class_name.find('BatchNorm') != -1:
         nn.init.normal_(m.weight.data, 0.0, 0.02)
         nn.init.constant_(m.bias.data, 0)

@@ -8,33 +8,35 @@ class Encoder(nn.Module):
     def __init__(self, z_dim, img_size):
         super(Encoder, self).__init__()
 
-        fc_in_dim = 4 * img_size * (img_size // 8) * (img_size // 8)
+        num_conv = 4
+        last_conv_kernel = img_size // (2 ** num_conv)
 
         self.conv = nn.Sequential(
-            nn.Conv2d(3, img_size // 2, kernel_size=3, stride=1),
-            nn.LeakyReLU(0.1, inplace=True),
+            nn.Conv2d(3, 32, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(32),
+            nn.LeakyReLU(0.2),  
+            
+            nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(64),
+            nn.LeakyReLU(0.2),  
+            
+            nn.Conv2d(64, 128, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(128),
+            nn.LeakyReLU(0.2),  
+            
+            nn.Conv2d(128, 256, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(0.2),  
+            
+            nn.Conv2d(256, 512, kernel_size=last_conv_kernel, stride=1, bias=False),
+            nn.BatchNorm2d(512),
+            nn.LeakyReLU(0.2),  
+            
+            nn.Conv2d(512, 512, kernel_size=1, stride=1, bias=False),
+            nn.BatchNorm2d(512),
+            nn.LeakyReLU(0.2),
 
-            nn.Conv2d(img_size // 2, img_size, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(img_size),
-            nn.LeakyReLU(0.1, inplace=True),
-
-            nn.Conv2d(img_size, 2 * img_size, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(2 * img_size),
-            nn.LeakyReLU(0.1, inplace=True),
-
-            nn.Conv2d(2 * img_size, 4 * img_size, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(4 * img_size),
-            nn.LeakyReLU(0.1, inplace=True)
-        )
-
-        self.fc = nn.Sequential(
-            nn.Linear(fc_in_dim, fc_in_dim // 8),
-            nn.ReLU(inplace=True),
-
-            nn.Linear(fc_in_dim // 8, fc_in_dim // 16),
-            nn.ReLU(inplace=True),
-
-            nn.Linear(fc_in_dim // 16, z_dim)
+            nn.Conv2d(512, z_dim, kernel_size=1, stride=1, bias=False)
         )
 
         self.apply(initWeights)
@@ -42,7 +44,6 @@ class Encoder(nn.Module):
     def forward(self, x):
         outputs = self.conv(x)
         outputs = outputs.view(x.size(0), -1)
-        outputs = self.fc(outputs)
         return outputs
 
 
