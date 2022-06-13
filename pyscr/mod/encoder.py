@@ -39,7 +39,7 @@ class Encoder(nn.Module):
             nn.Conv2d(512, z_dim, kernel_size=1, stride=1, bias=False)
         )
 
-        self.apply(initWeights)
+        # self.apply(initWeights)
 
     def forward(self, x):
         outputs = self.conv(x)

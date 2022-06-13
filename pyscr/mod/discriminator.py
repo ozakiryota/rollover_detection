@@ -49,7 +49,7 @@ class Discriminator(nn.Module):
 
         self.xz_conv2 = nn.Conv2d(512, 1, kernel_size=1, stride=1)
 
-        self.apply(initWeights)
+        # self.apply(initWeights)
 
     def forward(self, x, z):
         x_outputs = self.x_conv(x)

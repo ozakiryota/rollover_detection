@@ -2,6 +2,7 @@ import argparse
 import numpy as np
 import os
 import matplotlib.pyplot as plt
+import random
 
 import torch
 
@@ -109,6 +110,10 @@ class Evaluator:
             score_list.append(anomaly_score)
 
         ## save
+        random_indicies = list(range(len(score_list)))
+        random.shuffle(random_indicies)
+        self.saveSortedImages(images_list, label_list, random_indicies, self.args.show_h, self.args.show_w,
+            'random' + str(self.args.show_h * self.args.show_w) + '.png')
         sorted_indicies = np.argsort(score_list)
         self.saveSortedImages(images_list, label_list, sorted_indicies, self.args.show_h, self.args.show_w,
             'top' + str(self.args.show_h * self.args.show_w) + '_smallest_score.png')

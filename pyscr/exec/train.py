@@ -108,6 +108,7 @@ class Trainer:
         if self.args.load_weights_dir is not None:
             insert_index = info_str.find('epoch')
             info_str = info_str[:insert_index] + '+' + info_str[insert_index:]
+        info_str = info_str.replace('-', '').replace('.', '')
 
         print("self.device =", self.device)
         print("info_str =", info_str)
