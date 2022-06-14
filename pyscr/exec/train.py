@@ -23,6 +23,7 @@ class Trainer:
         self.args = self.setArgument()
         self.dataloader = self.getDataLoader()
         self.dis_net, self.gen_net, self.enc_net = self.getNetwork()
+        self.dis_optimizer, self.gen_optimizer, self.enc_optimizer = self.getOptimizer()
         self.info_str = self.getInfoStr()
     
     def setArgument(self):
@@ -96,6 +97,14 @@ class Trainer:
 
         return dis_net, gen_net, enc_net
 
+    def getOptimizer(self):
+        beta1, beta2 = 0.5, 0.999
+        dis_optimizer = torch.optim.Adam(self.dis_net.parameters(), self.args.lr_dis, [beta1, beta2])
+        gen_optimizer = torch.optim.Adam(self.gen_net.parameters(), self.args.lr_gen, [beta1, beta2])
+        enc_optimizer = torch.optim.Adam(self.enc_net.parameters(), self.args.lr_enc, [beta1, beta2])
+
+        return dis_optimizer, gen_optimizer, enc_optimizer
+
     def getInfoStr(self):
         info_str = str(len(self.dataloader.dataset)) + 'sample' \
             + str(self.args.img_size) + 'pixel' \
@@ -116,11 +125,6 @@ class Trainer:
         return info_str
 
     def train(self):
-        beta1, beta2 = 0.5, 0.999
-        dis_optimizer = torch.optim.Adam(self.dis_net.parameters(), self.args.lr_dis, [beta1, beta2])
-        gen_optimizer = torch.optim.Adam(self.gen_net.parameters(), self.args.lr_gen, [beta1, beta2])
-        enc_optimizer = torch.optim.Adam(self.enc_net.parameters(), self.args.lr_enc, [beta1, beta2])
-
         criterion = nn.BCEWithLogitsLoss(reduction='sum')
 
         # torch.backends.cudnn.benchmark = True
@@ -134,9 +138,9 @@ class Trainer:
         for epoch in range(self.args.num_epochs):
 
             epoch_start_clock = time.time()
+            dis_epoch_loss = 0.0
             gen_epoch_loss = 0.0
             enc_epoch_loss = 0.0
-            dis_epoch_loss = 0.0
 
             print("-------------")
             print("epoch: {}/{}".format(epoch + 1, self.args.num_epochs))
@@ -167,9 +171,9 @@ class Trainer:
                 dis_loss_fake = criterion(dis_outputs_fake.view(-1), fake_labels)
                 dis_loss = dis_loss_real + dis_loss_fake
 
-                dis_optimizer.zero_grad()
+                self.dis_optimizer.zero_grad()
                 dis_loss.backward()
-                dis_optimizer.step()
+                self.dis_optimizer.step()
 
                 # --------------------
                 # generator training
@@ -180,9 +184,9 @@ class Trainer:
 
                 gen_loss = criterion(dis_outputs_fake.view(-1), real_labels)
 
-                gen_optimizer.zero_grad()
+                self.gen_optimizer.zero_grad()
                 gen_loss.backward()
-                gen_optimizer.step()
+                self.gen_optimizer.step()
 
                 # --------------------
                 # encoder training
@@ -192,9 +196,9 @@ class Trainer:
 
                 enc_loss = criterion(dis_outputs_real.view(-1), fake_labels)
 
-                enc_optimizer.zero_grad()
+                self.enc_optimizer.zero_grad()
                 enc_loss.backward()
-                enc_optimizer.step()
+                self.enc_optimizer.step()
 
                 # --------------------
                 # record

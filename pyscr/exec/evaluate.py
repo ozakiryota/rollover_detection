@@ -29,6 +29,7 @@ class Evaluator:
         arg_parser.add_argument('--csv_name', default='imu_camera.csv')
         arg_parser.add_argument('--img_size', type=int, default=112)
         arg_parser.add_argument('--z_dim', type=int, default=100)
+        arg_parser.add_argument('--min_rollover_angle_deg', type=float, default=50.0)
         arg_parser.add_argument('--load_weights_dir', default='../../weights')
         arg_parser.add_argument('--save_fig_dir', default='../../fig')
         arg_parser.add_argument('--flag_show_reconstracted_images', action='store_true')
@@ -44,8 +45,7 @@ class Evaluator:
         ## data transformer
         mean = ([0.5, 0.5, 0.5])
         std = ([0.5, 0.5, 0.5])
-        min_rollover_angle_deg = 50.0
-        data_transformer = DataTransformer(self.args.img_size, mean, std, min_rollover_angle_deg)
+        data_transformer = DataTransformer(self.args.img_size, mean, std, self.args.min_rollover_angle_deg)
         ## dataset
         dataset = RolloverDataset(data_list, data_transformer, 'eval')
 
