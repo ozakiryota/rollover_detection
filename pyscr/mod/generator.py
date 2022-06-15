@@ -32,7 +32,7 @@ class Generator(nn.Module):
             nn.Tanh()
         )
 
-        # self.apply(initWeights)
+        self.apply(initWeights)
 
     def forward(self, z):
         outputs = z.view(z.size(0), -1, 1, 1)

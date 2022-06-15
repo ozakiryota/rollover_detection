@@ -19,7 +19,7 @@ from mod.anomaly_score_computer import computeAnomalyScore
 class Evaluator:
     def __init__(self):
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-        self.args = self.setArgument()
+        self.args = self.setArgument().parse_args()
         self.dataset = self.getDataset()
         self.dis_net, self.gen_net, self.enc_net = self.getNetwork()
     
@@ -36,7 +36,7 @@ class Evaluator:
         arg_parser.add_argument('--show_h', type=int, default=5)
         arg_parser.add_argument('--show_w', type=int, default=10)
 
-        return arg_parser.parse_args()
+        return arg_parser
 
     def getDataset(self):
         ## data list

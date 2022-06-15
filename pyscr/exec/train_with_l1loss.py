@@ -1,4 +1,4 @@
-# import argparse
+import argparse
 import os
 import time
 import datetime
@@ -14,10 +14,15 @@ class TrainerWithL1Loss(Trainer):
     def __init__(self):
         super(TrainerWithL1Loss, self).__init__()
 
+    def setArgument(self):
+        arg_parser = super(TrainerWithL1Loss, self).setArgument()
+        arg_parser.add_argument('--l1_loss_weight', type=float, default=0.1)
+
+        return arg_parser
+
     def train(self):
-        bce_criterion = nn.BCEWithLogitsLoss(reduction='sum')
-        l1_criterion = nn.L1Loss(reduction="sum")
-        l1_loss_weight = 0.1
+        bce_criterion = nn.BCEWithLogitsLoss(reduction='mean')
+        l1_criterion = nn.L1Loss(reduction='mean')
 
         # torch.backends.cudnn.benchmark = True
         
@@ -79,7 +84,7 @@ class TrainerWithL1Loss(Trainer):
 
                 bce_loss = bce_criterion(dis_outputs_fake.view(-1), real_labels) + bce_criterion(dis_outputs_real.view(-1), fake_labels)
                 l1_loss = l1_criterion(real_images, reconstracted_images)
-                gen_enc_loss = bce_loss + l1_loss_weight * l1_loss
+                gen_enc_loss = bce_loss + self.args.l1_loss_weight * l1_loss
 
                 self.gen_optimizer.zero_grad()
                 self.enc_optimizer.zero_grad()
@@ -92,8 +97,8 @@ class TrainerWithL1Loss(Trainer):
                 # --------------------
                 # record
                 # --------------------
-                dis_epoch_loss += dis_loss.item()
-                gen_enc_epoch_loss += gen_enc_loss.item()
+                dis_epoch_loss += batch_size_in_loop * dis_loss.item()
+                gen_enc_epoch_loss += batch_size_in_loop * gen_enc_loss.item()
             num_data = len(self.dataloader.dataset)
             loss_record.append([dis_epoch_loss / num_data, gen_enc_epoch_loss / num_data])
             tb_writer.add_scalars("loss", {"dis": loss_record[-1][0], "gen_enc": loss_record[-1][1]}, epoch)

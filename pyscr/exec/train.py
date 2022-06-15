@@ -20,7 +20,7 @@ from mod.encoder import Encoder
 class Trainer:
     def __init__(self):
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-        self.args = self.setArgument()
+        self.args = self.setArgument().parse_args()
         self.dataloader = self.getDataLoader()
         self.dis_net, self.gen_net, self.enc_net = self.getNetwork()
         self.dis_optimizer, self.gen_optimizer, self.enc_optimizer = self.getOptimizer()
@@ -42,7 +42,7 @@ class Trainer:
         arg_parser.add_argument('--save_weights_dir', default='../../weights')
         arg_parser.add_argument('--save_fig_dir', default='../../fig')
 
-        return arg_parser.parse_args()
+        return arg_parser
 
     def getDataLoader(self):
         ## data list
@@ -125,7 +125,7 @@ class Trainer:
         return info_str
 
     def train(self):
-        criterion = nn.BCEWithLogitsLoss(reduction='sum')
+        criterion = nn.BCEWithLogitsLoss(reduction='mean')
 
         # torch.backends.cudnn.benchmark = True
         
@@ -203,9 +203,9 @@ class Trainer:
                 # --------------------
                 # record
                 # --------------------
-                dis_epoch_loss += dis_loss.item()
-                gen_epoch_loss += gen_loss.item()
-                enc_epoch_loss += enc_loss.item()
+                dis_epoch_loss += batch_size_in_loop * dis_loss.item()
+                gen_epoch_loss += batch_size_in_loop * gen_loss.item()
+                enc_epoch_loss += batch_size_in_loop * enc_loss.item()
             num_data = len(self.dataloader.dataset)
             loss_record.append([dis_epoch_loss / num_data, gen_epoch_loss / num_data, enc_epoch_loss / num_data])
             tb_writer.add_scalars("loss", {"dis": loss_record[-1][0], "gen": loss_record[-1][1], "enc": loss_record[-1][2]}, epoch)
