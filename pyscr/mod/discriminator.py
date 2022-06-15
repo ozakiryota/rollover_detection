@@ -6,48 +6,48 @@ sys.path.append('../')
 from mod.weights_initializer import initWeights
 
 class Discriminator(nn.Module):
-    def __init__(self, z_dim, img_size):
+    def __init__(self, z_dim, img_size, conv_unit_ch=32):
         super(Discriminator, self).__init__()
 
         num_conv = 4
         last_x_conv_kernel = img_size // (2 ** num_conv)
 
         self.x_conv = nn.Sequential(
-            nn.Conv2d(3, 32, kernel_size=4, stride=2, padding=1),
+            nn.Conv2d(3, conv_unit_ch, kernel_size=4, stride=2, padding=1),
             nn.LeakyReLU(0.1, inplace=True),
             nn.Dropout2d(p=0.3),
 
-            nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=1),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(conv_unit_ch, 2 * conv_unit_ch, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(2 * conv_unit_ch),
             nn.LeakyReLU(0.1, inplace=True),
             nn.Dropout2d(p=0.3),
 
-            nn.Conv2d(64, 128, kernel_size=4, stride=2, padding=1),
-            nn.BatchNorm2d(128),
+            nn.Conv2d(2 * conv_unit_ch, 4 * conv_unit_ch, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(4 * conv_unit_ch),
             nn.LeakyReLU(0.1, inplace=True),
             nn.Dropout2d(p=0.3),
 
-            nn.Conv2d(128, 256, kernel_size=4, stride=2, padding=1),
-            nn.BatchNorm2d(256),
+            nn.Conv2d(4 * conv_unit_ch, 8 * conv_unit_ch, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(8 * conv_unit_ch),
             nn.LeakyReLU(0.1, inplace=True),
             nn.Dropout2d(p=0.3),
             
-            nn.Conv2d(256, 256, kernel_size=last_x_conv_kernel, stride=1)
+            nn.Conv2d(8 * conv_unit_ch, 8 * conv_unit_ch, kernel_size=last_x_conv_kernel, stride=1)
         )
 
         self.z_conv = nn.Sequential(
-            nn.Conv2d(z_dim, 256, kernel_size=1, stride=1),
+            nn.Conv2d(z_dim, 8 * conv_unit_ch, kernel_size=1, stride=1),
             nn.LeakyReLU(0.1, inplace=True),
             nn.Dropout2d(p=0.2)
         )
 
         self.xz_conv1 = nn.Sequential(
-            nn.Conv2d(512, 512, kernel_size=1, stride=1),
+            nn.Conv2d(16 * conv_unit_ch, 16 * conv_unit_ch, kernel_size=1, stride=1),
             nn.LeakyReLU(0.1, inplace=False),
             nn.Dropout2d(p=0.2)
         )
 
-        self.xz_conv2 = nn.Conv2d(512, 1, kernel_size=1, stride=1)
+        self.xz_conv2 = nn.Conv2d(16 * conv_unit_ch, 1, kernel_size=1, stride=1)
 
         self.apply(initWeights)
 

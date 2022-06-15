@@ -29,6 +29,7 @@ class TrainerWithL1Loss(Trainer):
         ## buffer
         save_log_dir = os.path.join(self.args.save_log_dir, datetime.datetime.now().strftime("%Y%m%d_%H%M%S_") + self.info_str)
         tb_writer = SummaryWriter(logdir=save_log_dir)
+        print("save_log_dir =", save_log_dir)
         loss_record = []
         start_clock = time.time()
 

@@ -29,6 +29,7 @@ class Evaluator:
         arg_parser.add_argument('--csv_name', default='imu_camera.csv')
         arg_parser.add_argument('--img_size', type=int, default=112)
         arg_parser.add_argument('--z_dim', type=int, default=100)
+        arg_parser.add_argument('--conv_unit_ch', type=int, default=32)
         arg_parser.add_argument('--min_rollover_angle_deg', type=float, default=50.0)
         arg_parser.add_argument('--load_weights_dir', default='../../weights')
         arg_parser.add_argument('--save_fig_dir', default='../../fig')
@@ -52,9 +53,9 @@ class Evaluator:
         return dataset
 
     def getNetwork(self):
-        dis_net = Discriminator(self.args.z_dim, self.args.img_size)
-        gen_net = Generator(self.args.z_dim, self.args.img_size)
-        enc_net = Encoder(self.args.z_dim, self.args.img_size)
+        dis_net = Discriminator(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
+        gen_net = Generator(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
+        enc_net = Encoder(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
 
         gen_weights_path = os.path.join(self.args.load_weights_dir, 'generator.pth')
         dis_weights_path = os.path.join(self.args.load_weights_dir, 'discriminator.pth')

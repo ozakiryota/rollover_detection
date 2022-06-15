@@ -5,38 +5,44 @@ sys.path.append('../')
 from mod.weights_initializer import initWeights
 
 class Encoder(nn.Module):
-    def __init__(self, z_dim, img_size):
+    def __init__(self, z_dim, img_size, conv_unit_ch=32):
         super(Encoder, self).__init__()
 
         num_conv = 4
         last_conv_kernel = img_size // (2 ** num_conv)
 
         self.conv = nn.Sequential(
-            nn.Conv2d(3, 32, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(32),
-            nn.LeakyReLU(0.2),  
+            nn.Conv2d(3, conv_unit_ch, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(conv_unit_ch),
+            # nn.LeakyReLU(0.2),
+            nn.ReLU(inplace=True),
             
-            nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(64),
-            nn.LeakyReLU(0.2),  
+            nn.Conv2d(conv_unit_ch, 2 * conv_unit_ch, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(2 * conv_unit_ch),
+            # nn.LeakyReLU(0.2),
+            nn.ReLU(inplace=True),
             
-            nn.Conv2d(64, 128, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(128),
-            nn.LeakyReLU(0.2),  
+            nn.Conv2d(2 * conv_unit_ch, 4 * conv_unit_ch, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(4 * conv_unit_ch),
+            # nn.LeakyReLU(0.2),
+            nn.ReLU(inplace=True),
             
-            nn.Conv2d(128, 256, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(256),
-            nn.LeakyReLU(0.2),  
+            nn.Conv2d(4 * conv_unit_ch, 8 * conv_unit_ch, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(8 * conv_unit_ch),
+            # nn.LeakyReLU(0.2),
+            nn.ReLU(inplace=True),
             
-            nn.Conv2d(256, 512, kernel_size=last_conv_kernel, stride=1, bias=False),
-            nn.BatchNorm2d(512),
-            nn.LeakyReLU(0.2),  
+            nn.Conv2d(8 * conv_unit_ch, 16 * conv_unit_ch, kernel_size=last_conv_kernel, stride=1, bias=False),
+            nn.BatchNorm2d(16 * conv_unit_ch),
+            # nn.LeakyReLU(0.2),
+            nn.ReLU(inplace=True),
             
-            nn.Conv2d(512, 512, kernel_size=1, stride=1, bias=False),
-            nn.BatchNorm2d(512),
-            nn.LeakyReLU(0.2),
+            nn.Conv2d(16 * conv_unit_ch, 16 * conv_unit_ch, kernel_size=1, stride=1, bias=False),
+            nn.BatchNorm2d(16 * conv_unit_ch),
+            # nn.LeakyReLU(0.2),
+            nn.ReLU(inplace=True),
 
-            nn.Conv2d(512, z_dim, kernel_size=1, stride=1, bias=False)
+            nn.Conv2d(16 * conv_unit_ch, z_dim, kernel_size=1, stride=1, bias=False)
         )
 
         self.apply(initWeights)

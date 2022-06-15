@@ -5,30 +5,34 @@ sys.path.append('../')
 from mod.weights_initializer import initWeights
 
 class Generator(nn.Module):
-    def __init__(self, z_dim, img_size):
+    def __init__(self, z_dim, img_size, conv_unit_ch=32):
         super(Generator, self).__init__()
 
         num_deconv = 4
         first_deconv_kernel = img_size // (2 ** num_deconv)
 
         self.deconv = nn.Sequential(
-            nn.ConvTranspose2d(z_dim, 256, kernel_size=first_deconv_kernel, stride=1, bias=False),
-            nn.BatchNorm2d(256),
-            nn.LeakyReLU(0.2),
+            nn.ConvTranspose2d(z_dim, 8 * conv_unit_ch, kernel_size=first_deconv_kernel, stride=1, bias=False),
+            nn.BatchNorm2d(8 * conv_unit_ch),
+            nn.LeakyReLU(0.2, inplace=True),
+            # nn.ReLU(inplace=True),
 
-            nn.ConvTranspose2d(256, 128, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(128),
-            nn.LeakyReLU(0.2),
+            nn.ConvTranspose2d(8 * conv_unit_ch, 4 * conv_unit_ch, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(4 * conv_unit_ch),
+            nn.LeakyReLU(0.2, inplace=True),
+            # nn.ReLU(inplace=True),
 
-            nn.ConvTranspose2d(128, 64, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(64),
-            nn.LeakyReLU(0.2),
+            nn.ConvTranspose2d(4 * conv_unit_ch, 2 * conv_unit_ch, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(2 * conv_unit_ch),
+            nn.LeakyReLU(0.2, inplace=True),
+            # nn.ReLU(inplace=True),
 
-            nn.ConvTranspose2d(64, 32, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(32),
-            nn.LeakyReLU(0.2),
+            nn.ConvTranspose2d(2 * conv_unit_ch, conv_unit_ch, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(conv_unit_ch),
+            nn.LeakyReLU(0.2, inplace=True),
+            # nn.ReLU(inplace=True),
 
-            nn.ConvTranspose2d(32, 3, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.ConvTranspose2d(conv_unit_ch, 3, kernel_size=4, stride=2, padding=1, bias=False),
             nn.Tanh()
         )
 

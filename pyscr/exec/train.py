@@ -32,6 +32,7 @@ class Trainer:
         arg_parser.add_argument('--csv_name', default='imu_camera.csv')
         arg_parser.add_argument('--img_size', type=int, default=112)
         arg_parser.add_argument('--z_dim', type=int, default=100)
+        arg_parser.add_argument('--conv_unit_ch', type=int, default=32)
         arg_parser.add_argument('--batch_size', type=int, default=100)
         arg_parser.add_argument('--load_weights_dir')
         arg_parser.add_argument('--lr_dis', type=float, default=5e-5)
@@ -61,9 +62,9 @@ class Trainer:
         return dataloader
 
     def getNetwork(self):
-        dis_net = Discriminator(self.args.z_dim, self.args.img_size)
-        gen_net = Generator(self.args.z_dim, self.args.img_size)
-        enc_net = Encoder(self.args.z_dim, self.args.img_size)
+        dis_net = Discriminator(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
+        gen_net = Generator(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
+        enc_net = Encoder(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
 
         if self.args.load_weights_dir is not None:
             gen_weights_path = os.path.join(self.args.load_weights_dir, 'generator.pth')
@@ -132,6 +133,7 @@ class Trainer:
         ## buffer
         save_log_dir = os.path.join(self.args.save_log_dir, datetime.datetime.now().strftime("%Y%m%d_%H%M%S_") + self.info_str)
         tb_writer = SummaryWriter(logdir=save_log_dir)
+        print("save_log_dir =", save_log_dir)
         loss_record = []
         start_clock = time.time()
 
