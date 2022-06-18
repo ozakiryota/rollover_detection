@@ -110,6 +110,7 @@ class Trainer:
         info_str = str(len(self.dataloader.dataset)) + 'sample' \
             + str(self.args.img_size) + 'pixel' \
             + str(self.args.z_dim) + 'z' \
+            + str(self.args.conv_unit_ch) + 'ch' \
             + str(self.args.lr_dis) + 'lrd' \
             + str(self.args.lr_gen) + 'lrg' \
             + str(self.args.lr_enc) + 'lre' \
@@ -126,7 +127,7 @@ class Trainer:
         return info_str
 
     def train(self):
-        criterion = nn.BCEWithLogitsLoss(reduction='mean')
+        criterion = nn.BCELoss(reduction='mean')
 
         # torch.backends.cudnn.benchmark = True
         

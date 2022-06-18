@@ -21,7 +21,7 @@ class TrainerWithL1Loss(Trainer):
         return arg_parser
 
     def train(self):
-        bce_criterion = nn.BCEWithLogitsLoss(reduction='mean')
+        bce_criterion = nn.BCELoss(reduction='mean')
         l1_criterion = nn.L1Loss(reduction='mean')
 
         # torch.backends.cudnn.benchmark = True
@@ -84,7 +84,7 @@ class TrainerWithL1Loss(Trainer):
                 reconstracted_images = self.gen_net(real_z_encoded)
 
                 bce_loss = bce_criterion(dis_outputs_fake.view(-1), real_labels) + bce_criterion(dis_outputs_real.view(-1), fake_labels)
-                l1_loss = l1_criterion(real_images, reconstracted_images)
+                l1_loss = l1_criterion(real_images, reconstracted_images) + l1_criterion(fake_z_random, real_z_encoded)
                 gen_enc_loss = bce_loss + self.args.l1_loss_weight * l1_loss
 
                 self.gen_optimizer.zero_grad()

@@ -47,7 +47,10 @@ class Discriminator(nn.Module):
             nn.Dropout2d(p=0.2)
         )
 
-        self.xz_conv2 = nn.Conv2d(16 * conv_unit_ch, 1, kernel_size=1, stride=1)
+        self.xz_conv2 = nn.Sequential(
+            nn.Conv2d(16 * conv_unit_ch, 1, kernel_size=1, stride=1),
+            nn.Sigmoid()
+        )
 
         self.apply(initWeights)
 
@@ -79,7 +82,7 @@ def test():
     ## debug
     print(dis_net)
     print("dis_outputs.size() =", dis_outputs.size())
-    print(nn.Sigmoid()(dis_outputs))
+    print("dis_outputs =", dis_outputs)
 
 if __name__ == '__main__':
     test()
