@@ -11,7 +11,7 @@ docker run \
 	-e "DISPLAY" \
 	-v "/tmp/.X11-unix:/tmp/.X11-unix:rw" \
 	--gpus all \
-	-v $HOME/dataset/rollover_detection:/root/dataset/rollover_detection \
+	-v $HOME/dataset:/root/dataset \
 	-v $(pwd)/../log:/root/$image/log \
 	-v $(pwd)/../weights:/root/$image/weights \
 	-v $(pwd)/../fig:/root/$image/fig \
