@@ -16,6 +16,9 @@ from mod.dataset import RolloverDataset
 from mod.generator import Generator
 from mod.discriminator import Discriminator
 from mod.encoder import Encoder
+# from sagan.generator import Generator
+# from sagan.discriminator import Discriminator
+# from sagan.encoder import Encoder
 
 class Trainer:
     def __init__(self):
