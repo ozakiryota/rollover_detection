@@ -67,14 +67,14 @@ class Trainer:
 
     def getNetwork(self):
         if self.args.model_name == 'sagan':
-            dis_net = DcganD(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
-            gen_net = DcganG(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
-            enc_net = DcganE(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
-        else:
-            self.args.model_name = 'dcgan'
             dis_net = SaganD(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
             gen_net = SaganG(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
             enc_net = SaganE(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
+        else:
+            self.args.model_name = 'dcgan'
+            dis_net = DcganD(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
+            gen_net = DcganG(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
+            enc_net = DcganE(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
 
         if self.args.load_weights_dir is not None:
             gen_weights_path = os.path.join(self.args.load_weights_dir, 'generator.pth')
@@ -177,7 +177,8 @@ class Trainer:
                 real_z_encoded = self.enc_net(real_images)
                 dis_outputs_real, _ = self.dis_net(real_images, real_z_encoded)
 
-                fake_z_random = torch.randn(batch_size_in_loop, self.args.z_dim).to(self.device)
+                # fake_z_random = torch.randn(batch_size_in_loop, self.args.z_dim).to(self.device)
+                fake_z_random = torch.FloatTensor(batch_size_in_loop, self.args.z_dim).uniform_(-1.0, 1.0).to(self.device)
                 fake_images = self.gen_net(fake_z_random)
                 dis_outputs_fake, _ = self.dis_net(fake_images, fake_z_random)
 
@@ -192,7 +193,8 @@ class Trainer:
                 # --------------------
                 # generator training
                 # --------------------
-                fake_z_random = torch.randn(batch_size_in_loop, self.args.z_dim).to(self.device)
+                # fake_z_random = torch.randn(batch_size_in_loop, self.args.z_dim).to(self.device)
+                fake_z_random = torch.FloatTensor(batch_size_in_loop, self.args.z_dim).uniform_(-1.0, 1.0).to(self.device)
                 fake_images = self.gen_net(fake_z_random)
                 dis_outputs_fake, _ = self.dis_net(fake_images, fake_z_random)
 
