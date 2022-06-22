@@ -6,7 +6,8 @@ import torch
 
 import sys
 sys.path.append('../')
-from mod.generator import Generator
+from dcgan.generator import Generator
+# from sagan.generator import Generator
 
 def test():
     ## device

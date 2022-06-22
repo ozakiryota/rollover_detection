@@ -13,12 +13,12 @@ sys.path.append('../')
 from mod.datalist_maker import makeDataList
 from mod.data_transformer import DataTransformer
 from mod.dataset import RolloverDataset
-from mod.generator import Generator
-from mod.discriminator import Discriminator
-from mod.encoder import Encoder
-# from sagan.generator import Generator
-# from sagan.discriminator import Discriminator
-# from sagan.encoder import Encoder
+from dcgan.generator import Generator as DcganG
+from dcgan.discriminator import Discriminator as DcganD
+from dcgan.encoder import Encoder as DcganE
+from sagan.generator import Generator as SaganG
+from sagan.discriminator import Discriminator as SaganD
+from sagan.encoder import Encoder as SaganE
 
 class Trainer:
     def __init__(self):
@@ -35,6 +35,7 @@ class Trainer:
         arg_parser.add_argument('--csv_name', default='imu_camera.csv')
         arg_parser.add_argument('--img_size', type=int, default=112)
         arg_parser.add_argument('--z_dim', type=int, default=100)
+        arg_parser.add_argument('--model_name', default='dcgan')
         arg_parser.add_argument('--conv_unit_ch', type=int, default=32)
         arg_parser.add_argument('--batch_size', type=int, default=100)
         arg_parser.add_argument('--load_weights_dir')
@@ -60,14 +61,20 @@ class Trainer:
         ## dataset
         dataset = RolloverDataset(data_list, data_transformer, 'train')
         ## dataloader
-        dataloader = torch.utils.data.DataLoader(dataset, batch_size=self.args.batch_size, shuffle=True)
+        dataloader = torch.utils.data.DataLoader(dataset, batch_size=self.args.batch_size, shuffle=True, drop_last=True)
 
         return dataloader
 
     def getNetwork(self):
-        dis_net = Discriminator(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
-        gen_net = Generator(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
-        enc_net = Encoder(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
+        if self.args.model_name == 'sagan':
+            dis_net = DcganD(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
+            gen_net = DcganG(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
+            enc_net = DcganE(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
+        else:
+            self.args.model_name = 'dcgan'
+            dis_net = SaganD(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
+            gen_net = SaganG(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
+            enc_net = SaganE(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
 
         if self.args.load_weights_dir is not None:
             gen_weights_path = os.path.join(self.args.load_weights_dir, 'generator.pth')
@@ -110,13 +117,14 @@ class Trainer:
         return dis_optimizer, gen_optimizer, enc_optimizer
 
     def getInfoStr(self):
-        info_str = str(len(self.dataloader.dataset)) + 'sample' \
+        info_str = self.args.model_name \
             + str(self.args.img_size) + 'pixel' \
             + str(self.args.z_dim) + 'z' \
             + str(self.args.conv_unit_ch) + 'ch' \
             + str(self.args.lr_dis) + 'lrd' \
             + str(self.args.lr_gen) + 'lrg' \
             + str(self.args.lr_enc) + 'lre' \
+            + str(len(self.dataloader.dataset)) + 'sample' \
             + str(self.args.batch_size) + 'batch' \
             + str(self.args.num_epochs) + 'epoch'
         if self.args.load_weights_dir is not None:
