@@ -58,14 +58,14 @@ class Evaluator:
 
     def getNetwork(self):
         if self.args.model_name == 'sagan':
-            dis_net = DcganD(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
-            gen_net = DcganG(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
-            enc_net = DcganE(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
-        else:
-            self.args.model_name = 'dcgan'
             dis_net = SaganD(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
             gen_net = SaganG(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
             enc_net = SaganE(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
+        else:
+            self.args.model_name = 'dcgan'
+            dis_net = DcganD(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
+            gen_net = DcganG(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
+            enc_net = DcganE(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
 
         gen_weights_path = os.path.join(self.args.load_weights_dir, 'generator.pth')
         dis_weights_path = os.path.join(self.args.load_weights_dir, 'discriminator.pth')
