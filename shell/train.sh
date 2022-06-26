@@ -15,6 +15,7 @@ python3 train.py \
     --lr_dis 1e-4 \
     --lr_gen 1e-4 \
     --lr_enc 1e-4 \
-    --num_epochs 100
+    --num_epochs 100 \
+    --save_weights_step 10
 
 cd $original_dir

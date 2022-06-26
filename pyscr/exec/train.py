@@ -43,8 +43,9 @@ class Trainer:
         arg_parser.add_argument('--lr_gen', type=float, default=1e-5)
         arg_parser.add_argument('--lr_enc', type=float, default=1e-5)
         arg_parser.add_argument('--num_epochs', type=int, default=100)
-        arg_parser.add_argument('--save_log_dir', default='../../log')
+        arg_parser.add_argument('--save_weights_step', type=int)
         arg_parser.add_argument('--save_weights_dir', default='../../weights')
+        arg_parser.add_argument('--save_log_dir', default='../../log')
         arg_parser.add_argument('--save_fig_dir', default='../../fig')
 
         return arg_parser
@@ -134,6 +135,9 @@ class Trainer:
 
         print("self.device =", self.device)
         print("info_str =", info_str)
+
+        if self.args.save_weights_step is None:
+            self.args.save_weights_step = self.args.num_epochs
 
         return info_str
 
@@ -228,11 +232,28 @@ class Trainer:
             print("loss: dis {:.4f} | gen {:.4f} | enc {:.4f}".format(loss_record[-1][0], loss_record[-1][1], loss_record[-1][2]))
             print("epoch time: {:.1f} sec".format(time.time() - epoch_start_clock))
             print("total time: {:.1f} min".format((time.time() - start_clock) / 60))
+
+            if (epoch + 1) % self.args.save_weights_step == 0 or (epoch + 1) == self.args.num_epochs:
+                self.saveWeights(epoch + 1)
         print("-------------")
         ## save
         tb_writer.close()
-        self.saveWeights()
         self.saveLossGraph(loss_record)
+
+    def saveWeights(self, epoch):
+        save_weights_dir = os.path.join(self.args.save_weights_dir, self.info_str)
+        insert_index = save_weights_dir.find('batch') + len('batch')
+        save_weights_dir = save_weights_dir[:insert_index] + str(epoch) + save_weights_dir[insert_index + len(str(self.args.num_epochs)):]
+        os.makedirs(save_weights_dir, exist_ok=True)
+        save_dis_weights_path = os.path.join(save_weights_dir, 'discriminator.pth')
+        save_gen_weights_path = os.path.join(save_weights_dir, 'generator.pth')
+        save_enc_weights_path = os.path.join(save_weights_dir, 'encoder.pth')
+        torch.save(self.dis_net.state_dict(), save_dis_weights_path)
+        torch.save(self.gen_net.state_dict(), save_gen_weights_path)
+        torch.save(self.enc_net.state_dict(), save_enc_weights_path)
+        print("save:", save_dis_weights_path)
+        print("save:", save_gen_weights_path)
+        print("save:", save_enc_weights_path)
 
     def saveLossGraph(self, loss_record):
         loss_record_trans = list(zip(*loss_record))
@@ -247,19 +268,6 @@ class Trainer:
         fig_save_path = os.path.join(self.args.save_fig_dir, self.info_str + '.jpg')
         plt.savefig(fig_save_path)
         plt.show()
-
-    def saveWeights(self):
-        save_weights_dir = os.path.join(self.args.save_weights_dir, self.info_str)
-        os.makedirs(save_weights_dir, exist_ok=True)
-        save_dis_weights_path = os.path.join(save_weights_dir, 'discriminator.pth')
-        save_gen_weights_path = os.path.join(save_weights_dir, 'generator.pth')
-        save_enc_weights_path = os.path.join(save_weights_dir, 'encoder.pth')
-        torch.save(self.dis_net.state_dict(), save_dis_weights_path)
-        torch.save(self.gen_net.state_dict(), save_gen_weights_path)
-        torch.save(self.enc_net.state_dict(), save_enc_weights_path)
-        print("save:", save_dis_weights_path)
-        print("save:", save_gen_weights_path)
-        print("save:", save_enc_weights_path)
 
 if __name__ == '__main__':
     trainer = Trainer()

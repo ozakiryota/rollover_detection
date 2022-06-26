@@ -106,10 +106,12 @@ class TrainerWithL1Loss(Trainer):
             print("loss: dis {:.4f} | gen_enc {:.4f}".format(loss_record[-1][0], loss_record[-1][1]))
             print("epoch time: {:.1f} sec".format(time.time() - epoch_start_clock))
             print("total time: {:.1f} min".format((time.time() - start_clock) / 60))
+
+            if (epoch + 1) % self.args.save_weights_step == 0 or (epoch + 1) == self.args.num_epochs:
+                self.saveWeights(epoch + 1)
         print("-------------")
         ## save
         tb_writer.close()
-        self.saveWeights()
         self.saveLossGraph(loss_record)
 
     def saveLossGraph(self, loss_record):
