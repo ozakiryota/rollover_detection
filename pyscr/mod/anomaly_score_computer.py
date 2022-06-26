@@ -10,6 +10,7 @@ def computeAnomalyScore(real_images, reconstracted_images, real_features, recons
     dis_loss = torch.sum(dis_loss, dim=1)
 
     score = (1 - dis_loss_weight) * res_loss + dis_loss_weight * dis_loss
+    score = torch.mean(score)
 
     return score
 

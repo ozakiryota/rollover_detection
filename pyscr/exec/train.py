@@ -19,6 +19,7 @@ from dcgan.encoder import Encoder as DcganE
 from sagan.generator import Generator as SaganG
 from sagan.discriminator import Discriminator as SaganD
 from sagan.encoder import Encoder as SaganE
+from mod.anomaly_score_computer import computeAnomalyScore
 
 class Trainer:
     def __init__(self):
@@ -26,8 +27,10 @@ class Trainer:
         self.args = self.setArgument().parse_args()
         self.dataloader = self.getDataLoader()
         self.dis_net, self.gen_net, self.enc_net = self.getNetwork()
+        self.bce_criterion = nn.BCELoss(reduction='mean')
         self.dis_optimizer, self.gen_optimizer, self.enc_optimizer = self.getOptimizer()
         self.info_str = self.getInfoStr()
+        self.tb_writer = self.getWriter()
     
     def setArgument(self):
         arg_parser = argparse.ArgumentParser()
@@ -103,10 +106,6 @@ class Trainer:
         gen_net.to(self.device)
         enc_net.to(self.device)
 
-        dis_net.train()
-        gen_net.train()
-        enc_net.train()
-
         return dis_net, gen_net, enc_net
 
     def getOptimizer(self):
@@ -141,24 +140,27 @@ class Trainer:
 
         return info_str
 
-    def train(self):
-        criterion = nn.BCELoss(reduction='mean')
-
-        # torch.backends.cudnn.benchmark = True
-        
-        ## buffer
+    def getWriter(self):
         save_log_dir = os.path.join(self.args.save_log_dir, datetime.datetime.now().strftime("%Y%m%d_%H%M%S_") + self.info_str)
         tb_writer = SummaryWriter(logdir=save_log_dir)
         print("save_log_dir =", save_log_dir)
+
+        return tb_writer
+
+    def exec(self):
+        # torch.backends.cudnn.benchmark = True
+        
         loss_record = []
+        score_record = []
         start_clock = time.time()
 
         for epoch in range(self.args.num_epochs):
-
             epoch_start_clock = time.time()
+
             dis_epoch_loss = 0.0
             gen_epoch_loss = 0.0
             enc_epoch_loss = 0.0
+            epoch_score = 0.0
 
             print("-------------")
             print("epoch: {}/{}".format(epoch + 1, self.args.num_epochs))
@@ -170,66 +172,16 @@ class Trainer:
                 if batch_size_in_loop == 1:
                     continue
 
-                real_labels = torch.full((batch_size_in_loop,), 1.0).to(self.device)
-                fake_labels = torch.full((batch_size_in_loop,), 0.0).to(self.device)
-
                 real_images = real_images.to(self.device)
 
-                ## --------------------
-                ## discrimator training
-                ## --------------------
-                real_z_encoded = self.enc_net(real_images)
-                dis_outputs_real, _ = self.dis_net(real_images, real_z_encoded)
+                dis_loss, gen_loss, enc_loss = self.train(real_images, batch_size_in_loop)
+                score = self.eval(real_images)
 
-                # fake_z_random = torch.randn(batch_size_in_loop, self.args.z_dim).to(self.device)
-                fake_z_random = torch.FloatTensor(batch_size_in_loop, self.args.z_dim).uniform_(-1.0, 1.0).to(self.device)
-                fake_images = self.gen_net(fake_z_random)
-                dis_outputs_fake, _ = self.dis_net(fake_images, fake_z_random)
-
-                dis_loss_real = criterion(dis_outputs_real.view(-1), real_labels)
-                dis_loss_fake = criterion(dis_outputs_fake.view(-1), fake_labels)
-                dis_loss = dis_loss_real + dis_loss_fake
-
-                self.dis_optimizer.zero_grad()
-                dis_loss.backward()
-                self.dis_optimizer.step()
-
-                # --------------------
-                # generator training
-                # --------------------
-                # fake_z_random = torch.randn(batch_size_in_loop, self.args.z_dim).to(self.device)
-                fake_z_random = torch.FloatTensor(batch_size_in_loop, self.args.z_dim).uniform_(-1.0, 1.0).to(self.device)
-                fake_images = self.gen_net(fake_z_random)
-                dis_outputs_fake, _ = self.dis_net(fake_images, fake_z_random)
-
-                gen_loss = criterion(dis_outputs_fake.view(-1), real_labels)
-
-                self.gen_optimizer.zero_grad()
-                gen_loss.backward()
-                self.gen_optimizer.step()
-
-                # --------------------
-                # encoder training
-                # --------------------
-                real_z_encoded = self.enc_net(real_images)
-                dis_outputs_real, _ = self.dis_net(real_images, real_z_encoded)
-
-                enc_loss = criterion(dis_outputs_real.view(-1), fake_labels)
-
-                self.enc_optimizer.zero_grad()
-                enc_loss.backward()
-                self.enc_optimizer.step()
-
-                # --------------------
-                # record
-                # --------------------
                 dis_epoch_loss += batch_size_in_loop * dis_loss.item()
                 gen_epoch_loss += batch_size_in_loop * gen_loss.item()
                 enc_epoch_loss += batch_size_in_loop * enc_loss.item()
-            num_data = len(self.dataloader.dataset)
-            loss_record.append([dis_epoch_loss / num_data, gen_epoch_loss / num_data, enc_epoch_loss / num_data])
-            tb_writer.add_scalars("loss", {"dis": loss_record[-1][0], "gen": loss_record[-1][1], "enc": loss_record[-1][2]}, epoch)
-            print("loss: dis {:.4f} | gen {:.4f} | enc {:.4f}".format(loss_record[-1][0], loss_record[-1][1], loss_record[-1][2]))
+                epoch_score += batch_size_in_loop * score.item()
+            self.record(epoch, loss_record, dis_epoch_loss, gen_epoch_loss, enc_epoch_loss, score_record, score)
             print("epoch time: {:.1f} sec".format(time.time() - epoch_start_clock))
             print("total time: {:.1f} min".format((time.time() - start_clock) / 60))
 
@@ -237,8 +189,89 @@ class Trainer:
                 self.saveWeights(epoch + 1)
         print("-------------")
         ## save
-        tb_writer.close()
+        self.tb_writer.close()
         self.saveLossGraph(loss_record)
+        self.saveScoreGraph(score_record)
+        plt.show()
+
+    def train(self, real_images, batch_size_in_loop):
+        self.dis_net.train()
+        self.gen_net.train()
+        self.enc_net.train()
+
+        real_labels = torch.full((batch_size_in_loop,), 1.0).to(self.device)
+        fake_labels = torch.full((batch_size_in_loop,), 0.0).to(self.device)
+
+        ## --------------------
+        ## discrimator training
+        ## --------------------
+        real_z_encoded = self.enc_net(real_images)
+        dis_outputs_real, _ = self.dis_net(real_images, real_z_encoded)
+
+        # fake_z_random = torch.randn(batch_size_in_loop, self.args.z_dim).to(self.device)
+        fake_z_random = torch.FloatTensor(batch_size_in_loop, self.args.z_dim).uniform_(-1.0, 1.0).to(self.device)
+        fake_images = self.gen_net(fake_z_random)
+        dis_outputs_fake, _ = self.dis_net(fake_images, fake_z_random)
+
+        dis_loss_real = self.bce_criterion(dis_outputs_real.view(-1), real_labels)
+        dis_loss_fake = self.bce_criterion(dis_outputs_fake.view(-1), fake_labels)
+        dis_loss = dis_loss_real + dis_loss_fake
+
+        self.dis_optimizer.zero_grad()
+        dis_loss.backward()
+        self.dis_optimizer.step()
+
+        # --------------------
+        # generator training
+        # --------------------
+        # fake_z_random = torch.randn(batch_size_in_loop, self.args.z_dim).to(self.device)
+        fake_z_random = torch.FloatTensor(batch_size_in_loop, self.args.z_dim).uniform_(-1.0, 1.0).to(self.device)
+        fake_images = self.gen_net(fake_z_random)
+        dis_outputs_fake, _ = self.dis_net(fake_images, fake_z_random)
+
+        gen_loss = self.bce_criterion(dis_outputs_fake.view(-1), real_labels)
+
+        self.gen_optimizer.zero_grad()
+        gen_loss.backward()
+        self.gen_optimizer.step()
+
+        # --------------------
+        # encoder training
+        # --------------------
+        real_z_encoded = self.enc_net(real_images)
+        dis_outputs_real, _ = self.dis_net(real_images, real_z_encoded)
+
+        enc_loss = self.bce_criterion(dis_outputs_real.view(-1), fake_labels)
+
+        self.enc_optimizer.zero_grad()
+        enc_loss.backward()
+        self.enc_optimizer.step()
+        
+        return dis_loss, gen_loss, enc_loss
+
+    def eval(self, real_images):
+        self.dis_net.eval()
+        self.gen_net.eval()
+        self.enc_net.eval()
+
+        with torch.set_grad_enabled(False):
+            real_z_encoded = self.enc_net(real_images)
+            reconstracted_images = self.gen_net(real_z_encoded)
+            _, real_feature = self.dis_net(real_images, real_z_encoded)
+            _, reconstracted_feature = self.dis_net(reconstracted_images, real_z_encoded)
+
+            reconstruction_score = computeAnomalyScore(real_images, reconstracted_images, real_feature, reconstracted_feature, 0.0)
+
+        return reconstruction_score
+
+    def record(self, epoch, loss_record, dis_epoch_loss, gen_epoch_loss, enc_epoch_loss, score_record, score):
+        num_data = len(self.dataloader.dataset)
+        loss_record.append([dis_epoch_loss / num_data, gen_epoch_loss / num_data, enc_epoch_loss / num_data])
+        score_record.append(score / num_data)
+        self.tb_writer.add_scalars('loss', {'dis': loss_record[-1][0], 'gen': loss_record[-1][1], 'enc': loss_record[-1][2]}, epoch)
+        self.tb_writer.add_scalars('score', {'reconstruction': score_record[-1]}, epoch)
+        print("loss: dis {:.4f} | gen {:.4f} | enc {:.4f}".format(loss_record[-1][0], loss_record[-1][1], loss_record[-1][2]))
+        print("score: {:.4f}".format(score_record[-1]))
 
     def saveWeights(self, epoch):
         save_weights_dir = os.path.join(self.args.save_weights_dir, self.info_str)
@@ -256,6 +289,7 @@ class Trainer:
         print("save:", save_enc_weights_path)
 
     def saveLossGraph(self, loss_record):
+        plt.figure()
         loss_record_trans = list(zip(*loss_record))
         plt.plot(range(len(loss_record)), loss_record_trans[0], label="Dis")
         plt.plot(range(len(loss_record)), loss_record_trans[1], label="Gen")
@@ -265,10 +299,20 @@ class Trainer:
         plt.ylabel("Loss")
         plt.title("loss: dis=" + '{:.4f}'.format(loss_record[-1][0]) + ", gen=" + '{:.4f}'.format(loss_record[-1][1]) + ", enc=" + '{:.4f}'.format(loss_record[-1][2]))
 
-        fig_save_path = os.path.join(self.args.save_fig_dir, self.info_str + '.jpg')
+        fig_save_path = os.path.join(self.args.save_fig_dir, self.info_str + '_loss.jpg')
         plt.savefig(fig_save_path)
-        plt.show()
+
+    def saveScoreGraph(self, score_record):
+        plt.figure()
+        plt.plot(range(len(score_record)), score_record, label="Reconstruction")
+        plt.legend()
+        plt.xlabel("Epoch")
+        plt.ylabel("Score")
+        plt.title("score=" + '{:.4f}'.format(score_record[-1]))
+
+        fig_save_path = os.path.join(self.args.save_fig_dir, self.info_str + '_score.jpg')
+        plt.savefig(fig_save_path)
 
 if __name__ == '__main__':
     trainer = Trainer()
-    trainer.train()
+    trainer.exec()
