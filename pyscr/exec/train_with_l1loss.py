@@ -21,6 +21,14 @@ class TrainerWithL1Loss(Trainer):
 
         return arg_parser
 
+    def checkArgument(self):
+        if self.args.model_name not in ['dcgan', 'sagan']:
+            self.args.model_name = 'dcgan'
+        if self.args.loss_type not in ['l1bce']:
+            self.args.loss_type = 'l1bce'
+        if self.args.save_weights_step is None:
+            self.args.save_weights_step = self.args.num_epochs
+
     def train(self, real_images, batch_size_in_loop):
         self.dis_net.train()
         self.gen_net.train()

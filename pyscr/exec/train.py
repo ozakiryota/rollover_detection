@@ -25,9 +25,10 @@ class Trainer:
     def __init__(self):
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         self.args = self.setArgument().parse_args()
+        self.checkArgument()
         self.dataloader = self.getDataLoader()
         self.dis_net, self.gen_net, self.enc_net = self.getNetwork()
-        self.bce_criterion = nn.BCELoss(reduction='mean')
+        self.bce_criterion = nn.BCEWithLogitsLoss(reduction='mean')
         self.dis_optimizer, self.gen_optimizer, self.enc_optimizer = self.getOptimizer()
         self.info_str = self.getInfoStr()
         self.tb_writer = self.getWriter()
@@ -46,12 +47,21 @@ class Trainer:
         arg_parser.add_argument('--lr_gen', type=float, default=1e-5)
         arg_parser.add_argument('--lr_enc', type=float, default=1e-5)
         arg_parser.add_argument('--num_epochs', type=int, default=100)
+        arg_parser.add_argument('--loss_type', default='bce')
         arg_parser.add_argument('--save_weights_step', type=int)
         arg_parser.add_argument('--save_weights_dir', default='../../weights')
         arg_parser.add_argument('--save_log_dir', default='../../log')
         arg_parser.add_argument('--save_fig_dir', default='../../fig')
 
         return arg_parser
+
+    def checkArgument(self):
+        if self.args.model_name not in ['dcgan', 'sagan']:
+            self.args.model_name = 'dcgan'
+        if self.args.loss_type not in ['bce', 'hinge']:
+            self.args.loss_type = 'bce'
+        if self.args.save_weights_step is None:
+            self.args.save_weights_step = self.args.num_epochs
 
     def getDataLoader(self):
         ## data list
@@ -75,7 +85,6 @@ class Trainer:
             gen_net = SaganG(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
             enc_net = SaganE(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
         else:
-            self.args.model_name = 'dcgan'
             dis_net = DcganD(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
             gen_net = DcganG(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
             enc_net = DcganE(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
@@ -118,6 +127,7 @@ class Trainer:
 
     def getInfoStr(self):
         info_str = self.args.model_name \
+            + str(self.args.loss_type) \
             + str(self.args.img_size) + 'pixel' \
             + str(self.args.z_dim) + 'z' \
             + str(self.args.conv_unit_ch) + 'ch' \
@@ -134,9 +144,6 @@ class Trainer:
 
         print("self.device =", self.device)
         print("info_str =", info_str)
-
-        if self.args.save_weights_step is None:
-            self.args.save_weights_step = self.args.num_epochs
 
         return info_str
 
@@ -213,8 +220,12 @@ class Trainer:
         fake_images = self.gen_net(fake_z_random)
         dis_outputs_fake, _ = self.dis_net(fake_images, fake_z_random)
 
-        dis_loss_real = self.bce_criterion(dis_outputs_real.view(-1), real_labels)
-        dis_loss_fake = self.bce_criterion(dis_outputs_fake.view(-1), fake_labels)
+        if self.args.loss_type == 'hinge':
+            dis_loss_real = nn.ReLU()(1.0 - dis_outputs_real).mean()
+            dis_loss_fake = nn.ReLU()(1.0 + dis_outputs_fake).mean()
+        else:
+            dis_loss_real = self.bce_criterion(dis_outputs_real.view(-1), real_labels)
+            dis_loss_fake = self.bce_criterion(dis_outputs_fake.view(-1), fake_labels)
         dis_loss = dis_loss_real + dis_loss_fake
 
         self.dis_optimizer.zero_grad()
@@ -229,7 +240,10 @@ class Trainer:
         fake_images = self.gen_net(fake_z_random)
         dis_outputs_fake, _ = self.dis_net(fake_images, fake_z_random)
 
-        gen_loss = self.bce_criterion(dis_outputs_fake.view(-1), real_labels)
+        if self.args.loss_type == 'hinge':
+            gen_loss = -dis_outputs_fake.mean()
+        else:
+            gen_loss = self.bce_criterion(dis_outputs_fake.view(-1), real_labels)
 
         self.gen_optimizer.zero_grad()
         gen_loss.backward()
@@ -241,7 +255,10 @@ class Trainer:
         real_z_encoded = self.enc_net(real_images)
         dis_outputs_real, _ = self.dis_net(real_images, real_z_encoded)
 
-        enc_loss = self.bce_criterion(dis_outputs_real.view(-1), fake_labels)
+        if self.args.loss_type == 'hinge':
+            enc_loss = dis_outputs_real.mean()
+        else:
+            enc_loss = self.bce_criterion(dis_outputs_real.view(-1), fake_labels)
 
         self.enc_optimizer.zero_grad()
         enc_loss.backward()

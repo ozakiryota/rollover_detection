@@ -61,8 +61,8 @@ class Discriminator(nn.Module):
         )
 
         self.xz_conv2 = nn.Sequential(
-            nn.Conv2d(16 * conv_unit_ch, 1, kernel_size=1, stride=1),
-            nn.Sigmoid()
+            nn.Conv2d(16 * conv_unit_ch, 1, kernel_size=1, stride=1)
+            # nn.Sigmoid()
         )
 
         self.apply(initWeights)
