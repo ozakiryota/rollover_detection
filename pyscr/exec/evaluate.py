@@ -130,6 +130,7 @@ class Evaluator:
             'top' + str(self.args.show_h * self.args.show_w) + '_smallest_score.png')
         self.saveSortedImages(images_list, label_list, sorted_indicies[::-1], self.args.show_h, self.args.show_w,
             'top' + str(self.args.show_h * self.args.show_w) + '_largest_score.png')
+        self.saveScoreGraph(score_list, label_list)
         plt.show()
 
     def saveSortedImages(self, images_list, label_list, indicies, h, w, save_name):
@@ -164,6 +165,12 @@ class Evaluator:
         os.makedirs(self.args.save_fig_dir, exist_ok=True)
         plt.savefig(os.path.join(self.args.save_fig_dir, save_name))
 
+    def saveScoreGraph(self, score_list, label_list):
+        plt.figure()
+        plt.xlabel("Anomaly score")
+        plt.ylabel("Anomaly label")
+        plt.scatter(score_list, label_list)
+        plt.savefig(os.path.join(self.args.save_fig_dir, 'anomaly_score'))
 
 if __name__ == '__main__':
     evaluator = Evaluator()
