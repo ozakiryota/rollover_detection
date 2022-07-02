@@ -24,7 +24,7 @@ class TrainerWithL1Loss(Trainer):
     def checkArgument(self):
         if self.args.model_name not in ['dcgan', 'sagan']:
             self.args.model_name = 'dcgan'
-        if self.args.loss_type not in ['l1bce']:
+        if self.args.loss_type not in ['l1bce', 'l1hinge']:
             self.args.loss_type = 'l1bce'
         if self.args.save_weights_step is None:
             self.args.save_weights_step = self.args.num_epochs
@@ -43,12 +43,19 @@ class TrainerWithL1Loss(Trainer):
         real_z_encoded = self.enc_net(real_images)
         dis_outputs_real, _ = self.dis_net(real_images, real_z_encoded)
 
-        fake_z_random = torch.randn(batch_size_in_loop, self.args.z_dim).to(self.device)
+        if self.args.flag_use_gauss_z:
+            fake_z_random = torch.randn(batch_size_in_loop, self.args.z_dim).to(self.device)
+        else:
+            fake_z_random = torch.FloatTensor(batch_size_in_loop, self.args.z_dim).uniform_(-1.0, 1.0).to(self.device)
         fake_images = self.gen_net(fake_z_random)
         dis_outputs_fake, _ = self.dis_net(fake_images, fake_z_random)
 
-        dis_loss_real = self.bce_criterion(dis_outputs_real.view(-1), real_labels)
-        dis_loss_fake = self.bce_criterion(dis_outputs_fake.view(-1), fake_labels)
+        if self.args.loss_type == 'l1hinge':
+            dis_loss_real = nn.ReLU()(1.0 - dis_outputs_real).mean()
+            dis_loss_fake = nn.ReLU()(1.0 + dis_outputs_fake).mean()
+        else:
+            dis_loss_real = self.bce_criterion(dis_outputs_real.view(-1), real_labels)
+            dis_loss_fake = self.bce_criterion(dis_outputs_fake.view(-1), fake_labels)
         dis_loss = dis_loss_real + dis_loss_fake
 
         self.dis_optimizer.zero_grad()
@@ -58,7 +65,10 @@ class TrainerWithL1Loss(Trainer):
         # --------------------
         # generator & encoder training
         # --------------------
-        fake_z_random = torch.randn(batch_size_in_loop, self.args.z_dim).to(self.device)
+        if self.args.flag_use_gauss_z:
+            fake_z_random = torch.randn(batch_size_in_loop, self.args.z_dim).to(self.device)
+        else:
+            fake_z_random = torch.FloatTensor(batch_size_in_loop, self.args.z_dim).uniform_(-1.0, 1.0).to(self.device)
         fake_images = self.gen_net(fake_z_random)
         dis_outputs_fake, _ = self.dis_net(fake_images, fake_z_random)
 
@@ -66,7 +76,10 @@ class TrainerWithL1Loss(Trainer):
         dis_outputs_real, _ = self.dis_net(real_images, real_z_encoded)
         reconstracted_images = self.gen_net(real_z_encoded)
 
-        bce_loss = self.bce_criterion(dis_outputs_fake.view(-1), real_labels) + self.bce_criterion(dis_outputs_real.view(-1), fake_labels)
+        if self.args.loss_type == 'l1hinge':
+            bce_loss = -dis_outputs_fake.mean() + dis_outputs_real.mean()
+        else:
+            bce_loss = self.bce_criterion(dis_outputs_fake.view(-1), real_labels) + self.bce_criterion(dis_outputs_real.view(-1), fake_labels)
         l1_loss = self.l1_criterion(real_images, reconstracted_images) + self.l1_criterion(fake_z_random, real_z_encoded)
         gen_enc_loss = bce_loss + self.args.l1_loss_weight * l1_loss
 

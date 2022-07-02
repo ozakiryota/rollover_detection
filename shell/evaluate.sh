@@ -12,7 +12,7 @@ python3 evaluate.py \
     --model_name dcgan \
     --conv_unit_ch 64 \
     --min_rollover_angle_deg 30.0 \
-    --load_weights_dir ../../weights/dcganbce64pixel128z64ch00001lrd00001lrg00001lre1000sample128batch100epoch \
+    --load_weights_dir ../../weights/dcganbce64pixel128randz64ch00001lrd00001lrg00001lre1000sample128batch100epoch \
     --flag_show_reconstracted_images
 
 cd $original_dir

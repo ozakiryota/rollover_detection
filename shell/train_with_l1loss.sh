@@ -17,6 +17,7 @@ python3 train_with_l1loss.py \
     --lr_enc 1e-4 \
     --loss_type l1bce \
     --num_epochs 100 \
+    --flag_use_gauss_z \
     --save_weights_step 10 \
     --l1_loss_weight 0.1
 

@@ -17,6 +17,7 @@ python3 train.py \
     --lr_enc 1e-4 \
     --loss_type bce \
     --num_epochs 100 \
+    --flag_use_gauss_z \
     --save_weights_step 10
 
 cd $original_dir

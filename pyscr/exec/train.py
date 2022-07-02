@@ -47,6 +47,7 @@ class Trainer:
         arg_parser.add_argument('--lr_gen', type=float, default=1e-5)
         arg_parser.add_argument('--lr_enc', type=float, default=1e-5)
         arg_parser.add_argument('--num_epochs', type=int, default=100)
+        arg_parser.add_argument('--flag_use_gauss_z', action='store_true')
         arg_parser.add_argument('--loss_type', default='bce')
         arg_parser.add_argument('--save_weights_step', type=int)
         arg_parser.add_argument('--save_weights_dir', default='../../weights')
@@ -129,7 +130,7 @@ class Trainer:
         info_str = self.args.model_name \
             + str(self.args.loss_type) \
             + str(self.args.img_size) + 'pixel' \
-            + str(self.args.z_dim) + 'z' \
+            + str(self.args.z_dim) + 'randz' \
             + str(self.args.conv_unit_ch) + 'ch' \
             + str(self.args.lr_dis) + 'lrd' \
             + str(self.args.lr_gen) + 'lrg' \
@@ -140,6 +141,9 @@ class Trainer:
         if self.args.load_weights_dir is not None:
             insert_index = info_str.find('epoch')
             info_str = info_str[:insert_index] + '+' + info_str[insert_index:]
+        if self.args.flag_use_gauss_z:
+            insert_index = info_str.find('randz')
+            info_str = info_str[:insert_index] + 'gauss' + info_str[insert_index + len('rand'):]
         info_str = info_str.replace('-', '').replace('.', '')
 
         print("self.device =", self.device)
@@ -215,8 +219,10 @@ class Trainer:
         real_z_encoded = self.enc_net(real_images)
         dis_outputs_real, _ = self.dis_net(real_images, real_z_encoded)
 
-        # fake_z_random = torch.randn(batch_size_in_loop, self.args.z_dim).to(self.device)
-        fake_z_random = torch.FloatTensor(batch_size_in_loop, self.args.z_dim).uniform_(-1.0, 1.0).to(self.device)
+        if self.args.flag_use_gauss_z:
+            fake_z_random = torch.randn(batch_size_in_loop, self.args.z_dim).to(self.device)
+        else:
+            fake_z_random = torch.FloatTensor(batch_size_in_loop, self.args.z_dim).uniform_(-1.0, 1.0).to(self.device)
         fake_images = self.gen_net(fake_z_random)
         dis_outputs_fake, _ = self.dis_net(fake_images, fake_z_random)
 
@@ -235,8 +241,10 @@ class Trainer:
         # --------------------
         # generator training
         # --------------------
-        # fake_z_random = torch.randn(batch_size_in_loop, self.args.z_dim).to(self.device)
-        fake_z_random = torch.FloatTensor(batch_size_in_loop, self.args.z_dim).uniform_(-1.0, 1.0).to(self.device)
+        if self.args.flag_use_gauss_z:
+            fake_z_random = torch.randn(batch_size_in_loop, self.args.z_dim).to(self.device)
+        else:
+            fake_z_random = torch.FloatTensor(batch_size_in_loop, self.args.z_dim).uniform_(-1.0, 1.0).to(self.device)
         fake_images = self.gen_net(fake_z_random)
         dis_outputs_fake, _ = self.dis_net(fake_images, fake_z_random)
 
