@@ -120,6 +120,8 @@ class Evaluator:
             label_list.append(label)
             score_list.append(anomaly_score)
 
+        ## print
+        print("# of anomaly samples:", label_list.count(True), "/", len(label_list))
         ## save
         random_indicies = list(range(len(score_list)))
         random.shuffle(random_indicies)

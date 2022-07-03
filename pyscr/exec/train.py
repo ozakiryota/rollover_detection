@@ -23,7 +23,7 @@ from mod.anomaly_score_computer import computeAnomalyScore
 
 class Trainer:
     def __init__(self):
-        self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.args = self.setArgument().parse_args()
         self.checkArgument()
         self.dataloader = self.getDataLoader()
@@ -43,6 +43,7 @@ class Trainer:
         arg_parser.add_argument('--conv_unit_ch', type=int, default=32)
         arg_parser.add_argument('--batch_size', type=int, default=100)
         arg_parser.add_argument('--load_weights_dir')
+        arg_parser.add_argument('--flag_use_multi_gpu', action='store_true')
         arg_parser.add_argument('--lr_dis', type=float, default=5e-5)
         arg_parser.add_argument('--lr_gen', type=float, default=1e-5)
         arg_parser.add_argument('--lr_enc', type=float, default=1e-5)
@@ -112,9 +113,14 @@ class Trainer:
             dis_net.load_state_dict(loaded_dis_weights)
             enc_net.load_state_dict(loaded_enc_weights)
 
-        dis_net.to(self.device)
-        gen_net.to(self.device)
-        enc_net.to(self.device)
+        if self.args.flag_use_multi_gpu:
+            dis_net = nn.DataParallel(dis_net)
+            gen_net = nn.DataParallel(gen_net)
+            enc_net = nn.DataParallel(enc_net)
+        else:
+            dis_net.to(self.device)
+            gen_net.to(self.device)
+            enc_net.to(self.device)
 
         return dis_net, gen_net, enc_net
 
@@ -306,9 +312,14 @@ class Trainer:
         save_dis_weights_path = os.path.join(save_weights_dir, 'discriminator.pth')
         save_gen_weights_path = os.path.join(save_weights_dir, 'generator.pth')
         save_enc_weights_path = os.path.join(save_weights_dir, 'encoder.pth')
-        torch.save(self.dis_net.state_dict(), save_dis_weights_path)
-        torch.save(self.gen_net.state_dict(), save_gen_weights_path)
-        torch.save(self.enc_net.state_dict(), save_enc_weights_path)
+        if self.args.flag_use_multi_gpu:
+            torch.save(self.dis_net.module.state_dict(), save_dis_weights_path)
+            torch.save(self.gen_net.module.state_dict(), save_gen_weights_path)
+            torch.save(self.enc_net.module.state_dict(), save_enc_weights_path)
+        else:
+            torch.save(self.dis_net.state_dict(), save_dis_weights_path)
+            torch.save(self.gen_net.state_dict(), save_gen_weights_path)
+            torch.save(self.enc_net.state_dict(), save_enc_weights_path)
         print("save:", save_dis_weights_path)
         print("save:", save_gen_weights_path)
         print("save:", save_enc_weights_path)
