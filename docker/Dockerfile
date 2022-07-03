@@ -23,11 +23,11 @@ RUN apt-get update && \
 		tensorboardX \
 		tensorboard
 ########## Cache busting ##########
-# ARG CACHEBUST=1
+ARG CACHEBUST=1
 ########## rollover_detection ##########
 RUN pip3 install \
 		matplotlib && \
-	cd ~
-	# git clone https://github.com/ozakiryota/rollover_detection.git
+	cd ~ && \
+	git clone https://github.com/ozakiryota/rollover_detection.git
 ########## Initial position ##########
 WORKDIR /root/rollover_detection
