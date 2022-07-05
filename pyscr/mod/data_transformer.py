@@ -6,7 +6,7 @@ import math
 from torchvision import transforms
 
 class DataTransformer():
-    def __init__(self, resize, mean, std, min_rollover_angle_deg):
+    def __init__(self, resize, mean, std):
         self.resize = resize
         self.mean = mean
         self.std = std
@@ -16,7 +16,6 @@ class DataTransformer():
             transforms.ToTensor(),
             transforms.Normalize(mean, std)
         ])
-        self.min_rollover_angle_deg = min_rollover_angle_deg
 
     def __call__(self, img_pil, acc_numpy, phase='train'):
         ## augemntation
@@ -28,8 +27,9 @@ class DataTransformer():
         ## img
         img_tensor = self.img_transformer(img_pil)
         ## acc
-        is_rollover = self.isRollover(acc_numpy)
-        return img_tensor, is_rollover
+        # is_rollover = self.isRollover(acc_numpy)
+        angle_deg = self.getAngleBetweenVectorsDeg(np.array([0, 0, 1]), acc_numpy)
+        return img_tensor, angle_deg
 
     def mirror(self, img_pil, acc_numpy):
         ## image
@@ -38,13 +38,14 @@ class DataTransformer():
         acc_numpy[1] = -acc_numpy[1]
         return img_pil, acc_numpy
 
-    def isRollover(self, acc_numpy):
-        angle_rad = self.getAngleBetweenVectors(np.array([0, 0, 1]), acc_numpy)
-        angle_deg = angle_rad / math.pi * 180.0
-        return angle_deg > self.min_rollover_angle_deg
+    # def isRollover(self, acc_numpy):
+    #     angle_deg = self.getAngleBetweenVectorsDeg(np.array([0, 0, 1]), acc_numpy)
+    #     return angle_deg > self.min_rollover_angle_deg
 
-    def getAngleBetweenVectors(self, v1, v2):
-        return math.acos(np.dot(v1, v2) / np.linalg.norm(v1, ord=2) / np.linalg.norm(v2, ord=2))
+    def getAngleBetweenVectorsDeg(self, v1, v2):
+        angle_rad = math.acos(np.dot(v1, v2) / np.linalg.norm(v1, ord=2) / np.linalg.norm(v2, ord=2))
+        angle_deg = angle_rad / math.pi * 180.0
+        return angle_deg
 
 
 def test():
@@ -65,8 +66,7 @@ def test():
     resize = 224
     mean = ([0.5, 0.5, 0.5])
     std = ([0.5, 0.5, 0.5])
-    min_rollover_angle_deg = 50.0
-    data_transformer = DataTransformer(resize, mean, std, min_rollover_angle_deg)
+    data_transformer = DataTransformer(resize, mean, std)
     img_trans, label = data_transformer(img_pil, acc)
     ## debug
     print("img_trans.size() =", img_trans.size())

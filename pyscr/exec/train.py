@@ -23,9 +23,9 @@ from mod.anomaly_score_computer import computeAnomalyScore
 
 class Trainer:
     def __init__(self):
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.args = self.setArgument().parse_args()
         self.checkArgument()
+        self.device = torch.device(self.args.device if torch.cuda.is_available() else 'cpu')
         self.dataloader = self.getDataLoader()
         self.dis_net, self.gen_net, self.enc_net = self.getNetwork()
         self.bce_criterion = nn.BCEWithLogitsLoss(reduction='mean')
@@ -35,6 +35,7 @@ class Trainer:
     
     def setArgument(self):
         arg_parser = argparse.ArgumentParser()
+        arg_parser.add_argument('--device', default='cuda:0')
         arg_parser.add_argument('--dataset_dirs', required=True)
         arg_parser.add_argument('--csv_name', default='imu_camera.csv')
         arg_parser.add_argument('--img_size', type=int, default=112)
@@ -58,6 +59,9 @@ class Trainer:
         return arg_parser
 
     def checkArgument(self):
+        device_list = ['cpu', 'cuda'] + ['cuda:' + str(i) for i in range(torch.cuda.device_count())]
+        if self.args.device not in device_list:
+            self.args.device = 'cuda:0'
         if self.args.model_name not in ['dcgan', 'sagan']:
             self.args.model_name = 'dcgan'
         if self.args.loss_type not in ['bce', 'hinge']:
@@ -72,8 +76,7 @@ class Trainer:
         ## data transformer
         mean = ([0.5, 0.5, 0.5])
         std = ([0.5, 0.5, 0.5])
-        min_rollover_angle_deg = 50.0
-        data_transformer = DataTransformer(self.args.img_size, mean, std, min_rollover_angle_deg)
+        data_transformer = DataTransformer(self.args.img_size, mean, std)
         ## dataset
         dataset = RolloverDataset(data_list, data_transformer, 'train')
         ## dataloader
@@ -95,32 +98,31 @@ class Trainer:
             gen_weights_path = os.path.join(self.args.load_weights_dir, 'generator.pth')
             dis_weights_path = os.path.join(self.args.load_weights_dir, 'discriminator.pth')
             enc_weights_path = os.path.join(self.args.load_weights_dir, 'encoder.pth')
-            if torch.cuda.is_available():
-                loaded_gen_weights = torch.load(gen_weights_path)
-                print("load [GPU -> GPU]:", gen_weights_path)
-                loaded_dis_weights = torch.load(dis_weights_path)
-                print("load [GPU -> GPU]:", dis_weights_path)
-                loaded_enc_weights = torch.load(enc_weights_path)
-                print("load [GPU -> GPU]:", enc_weights_path)
-            else:
+            if self.device == torch.device('cpu'):
                 loaded_gen_weights = torch.load(gen_weights_path, map_location={"cuda:0": "cpu"})
                 print("load [GPU -> CPU]:", gen_weights_path)
                 loaded_dis_weights = torch.load(dis_weights_path, map_location={"cuda:0": "cpu"})
                 print("load [GPU -> CPU]:", dis_weights_path)
                 loaded_enc_weights = torch.load(enc_weights_path, map_location={"cuda:0": "cpu"})
                 print("load [GPU -> CPU]:", enc_weights_path)
+            else:
+                loaded_gen_weights = torch.load(gen_weights_path)
+                print("load [GPU -> GPU]:", gen_weights_path)
+                loaded_dis_weights = torch.load(dis_weights_path)
+                print("load [GPU -> GPU]:", dis_weights_path)
+                loaded_enc_weights = torch.load(enc_weights_path)
+                print("load [GPU -> GPU]:", enc_weights_path)
             gen_net.load_state_dict(loaded_gen_weights)
             dis_net.load_state_dict(loaded_dis_weights)
             enc_net.load_state_dict(loaded_enc_weights)
 
+        dis_net.to(self.device)
+        gen_net.to(self.device)
+        enc_net.to(self.device)
         if self.args.flag_use_multi_gpu:
             dis_net = nn.DataParallel(dis_net)
             gen_net = nn.DataParallel(gen_net)
             enc_net = nn.DataParallel(enc_net)
-        else:
-            dis_net.to(self.device)
-            gen_net.to(self.device)
-            enc_net.to(self.device)
 
         return dis_net, gen_net, enc_net
 

@@ -22,8 +22,7 @@ class RolloverDataset(torch.utils.data.Dataset):
         acc_numpy = np.array(acc_list)
         ## tansform
         img_trans, label = self.data_transformer(img_pil, acc_numpy, phase=self.phase)
-        return img_trans, int(label)
-
+        return img_trans, label
 
 
 def test():
@@ -40,7 +39,6 @@ def test():
     resize = 224
     mean = ([0.5, 0.5, 0.5])
     std = ([0.5, 0.5, 0.5])
-    min_rollover_angle_deg = 50.0
     data_transformer = DataTransformer(resize, mean, std, min_rollover_angle_deg)
     ## dataset
     dataset = RolloverDataset(data_list, data_transformer, 'train')

@@ -21,27 +21,37 @@ from mod.anomaly_score_computer import computeAnomalyScore
 
 class Evaluator:
     def __init__(self):
-        self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         self.args = self.setArgument().parse_args()
+        self.checkArgument()
+        self.device = torch.device(self.args.device if torch.cuda.is_available() else 'cpu')
         self.dataset = self.getDataset()
         self.dis_net, self.gen_net, self.enc_net = self.getNetwork()
     
     def setArgument(self):
         arg_parser = argparse.ArgumentParser()
+        arg_parser.add_argument('--device', default='cuda:0')
         arg_parser.add_argument('--dataset_dirs', required=True)
         arg_parser.add_argument('--csv_name', default='imu_camera.csv')
         arg_parser.add_argument('--img_size', type=int, default=112)
         arg_parser.add_argument('--z_dim', type=int, default=100)
         arg_parser.add_argument('--model_name', default='dcgan')
         arg_parser.add_argument('--conv_unit_ch', type=int, default=32)
-        arg_parser.add_argument('--min_rollover_angle_deg', type=float, default=50.0)
+        arg_parser.add_argument('--min_rollover_angle_deg', type=float, default=10.0)
         arg_parser.add_argument('--load_weights_dir', default='../../weights')
         arg_parser.add_argument('--save_fig_dir', default='../../fig')
         arg_parser.add_argument('--flag_show_reconstracted_images', action='store_true')
         arg_parser.add_argument('--show_h', type=int, default=5)
         arg_parser.add_argument('--show_w', type=int, default=10)
+        arg_parser.add_argument('--flag_convert_angle_to_bool', action='store_true')
 
         return arg_parser
+
+    def checkArgument(self):
+        device_list = ['cpu', 'cuda'] + ['cuda:' + str(i) for i in range(torch.cuda.device_count())]
+        if self.args.device not in device_list:
+            self.args.device = 'cuda:0'
+        if self.args.model_name not in ['dcgan', 'sagan']:
+            self.args.model_name = 'dcgan'
 
     def getDataset(self):
         ## data list
@@ -50,7 +60,7 @@ class Evaluator:
         ## data transformer
         mean = ([0.5, 0.5, 0.5])
         std = ([0.5, 0.5, 0.5])
-        data_transformer = DataTransformer(self.args.img_size, mean, std, self.args.min_rollover_angle_deg)
+        data_transformer = DataTransformer(self.args.img_size, mean, std)
         ## dataset
         dataset = RolloverDataset(data_list, data_transformer, 'eval')
 
@@ -62,7 +72,6 @@ class Evaluator:
             gen_net = SaganG(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
             enc_net = SaganE(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
         else:
-            self.args.model_name = 'dcgan'
             dis_net = DcganD(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
             gen_net = DcganG(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
             enc_net = DcganE(self.args.z_dim, self.args.img_size, self.args.conv_unit_ch)
@@ -70,20 +79,20 @@ class Evaluator:
         gen_weights_path = os.path.join(self.args.load_weights_dir, 'generator.pth')
         dis_weights_path = os.path.join(self.args.load_weights_dir, 'discriminator.pth')
         enc_weights_path = os.path.join(self.args.load_weights_dir, 'encoder.pth')
-        if torch.cuda.is_available():
-            loaded_gen_weights = torch.load(gen_weights_path)
-            print("load [GPU -> GPU]:", gen_weights_path)
-            loaded_dis_weights = torch.load(dis_weights_path)
-            print("load [GPU -> GPU]:", dis_weights_path)
-            loaded_enc_weights = torch.load(enc_weights_path)
-            print("load [GPU -> GPU]:", enc_weights_path)
-        else:
+        if self.device == torch.device('cpu'):
             loaded_gen_weights = torch.load(gen_weights_path, map_location={"cuda:0": "cpu"})
             print("load [GPU -> CPU]:", gen_weights_path)
             loaded_dis_weights = torch.load(dis_weights_path, map_location={"cuda:0": "cpu"})
             print("load [GPU -> CPU]:", dis_weights_path)
             loaded_enc_weights = torch.load(enc_weights_path, map_location={"cuda:0": "cpu"})
             print("load [GPU -> CPU]:", enc_weights_path)
+        else:
+            loaded_gen_weights = torch.load(gen_weights_path)
+            print("load [GPU -> GPU]:", gen_weights_path)
+            loaded_dis_weights = torch.load(dis_weights_path)
+            print("load [GPU -> GPU]:", dis_weights_path)
+            loaded_enc_weights = torch.load(enc_weights_path)
+            print("load [GPU -> GPU]:", enc_weights_path)
         gen_net.load_state_dict(loaded_gen_weights)
         dis_net.load_state_dict(loaded_dis_weights)
         enc_net.load_state_dict(loaded_enc_weights)
@@ -114,15 +123,14 @@ class Evaluator:
             _, reconstracted_feature = self.dis_net(reconstracted_image, z)
 
             anomaly_score = computeAnomalyScore(real_image, reconstracted_image, real_feature, reconstracted_feature).item()
-            print("anomaly_score =", anomaly_score)
+            # print("anomaly_score =", anomaly_score)
 
             images_list.append([real_image.squeeze(0).cpu().detach().numpy(), reconstracted_image.squeeze(0).cpu().detach().numpy()])
             label_list.append(label)
             score_list.append(anomaly_score)
 
-        ## print
-        print("# of anomaly samples:", label_list.count(True), "/", len(label_list))
-        ## save
+        print("# of anomaly samples:", [angle > self.args.min_rollover_angle_deg for angle in label_list].count(True), "/", len(label_list))
+
         random_indicies = list(range(len(score_list)))
         random.shuffle(random_indicies)
         self.saveSortedImages(images_list, label_list, random_indicies, self.args.show_h, self.args.show_w,
@@ -170,8 +178,13 @@ class Evaluator:
     def saveScoreGraph(self, score_list, label_list):
         plt.figure()
         plt.xlabel("Anomaly score")
-        plt.ylabel("Anomaly label")
-        plt.scatter(score_list, label_list)
+        if self.args.flag_convert_angle_to_bool:
+            plt.ylabel("Anomaly label")
+            plt.scatter(score_list, [angle > self.args.min_rollover_angle_deg for angle in label_list])
+            plt.yticks([0.0, 1.0], [False, True])
+        else:
+            plt.ylabel("Rollover angle [deg]")
+            plt.scatter(score_list, label_list)
         plt.savefig(os.path.join(self.args.save_fig_dir, 'anomaly_score'))
 
 if __name__ == '__main__':

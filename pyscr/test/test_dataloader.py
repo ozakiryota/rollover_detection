@@ -34,8 +34,7 @@ def test():
     resize = 224
     mean = ([0.5, 0.5, 0.5])
     std = ([0.5, 0.5, 0.5])
-    min_rollover_angle_deg = 50.0
-    data_transformer = DataTransformer(resize, mean, std, min_rollover_angle_deg)
+    data_transformer = DataTransformer(resize, mean, std)
     ## dataset
     dataset = RolloverDataset(data_list, data_transformer, 'train')
     ## dataloader
