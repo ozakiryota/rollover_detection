@@ -14,33 +14,27 @@ class Encoder(nn.Module):
         self.conv = nn.Sequential(
             nn.Conv2d(3, conv_unit_ch, kernel_size=4, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(conv_unit_ch),
-            # nn.LeakyReLU(0.2),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(0.2),
             
             nn.Conv2d(conv_unit_ch, 2 * conv_unit_ch, kernel_size=4, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(2 * conv_unit_ch),
-            # nn.LeakyReLU(0.2),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(0.2),
             
             nn.Conv2d(2 * conv_unit_ch, 4 * conv_unit_ch, kernel_size=4, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(4 * conv_unit_ch),
-            # nn.LeakyReLU(0.2),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(0.2),
             
             nn.Conv2d(4 * conv_unit_ch, 8 * conv_unit_ch, kernel_size=4, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(8 * conv_unit_ch),
-            # nn.LeakyReLU(0.2),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(0.2),
             
             nn.Conv2d(8 * conv_unit_ch, 16 * conv_unit_ch, kernel_size=last_conv_kernel, stride=1, bias=False),
             nn.BatchNorm2d(16 * conv_unit_ch),
-            # nn.LeakyReLU(0.2),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(0.2),
             
             nn.Conv2d(16 * conv_unit_ch, 16 * conv_unit_ch, kernel_size=1, stride=1, bias=False),
             nn.BatchNorm2d(16 * conv_unit_ch),
-            # nn.LeakyReLU(0.2),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(0.2),
 
             nn.Conv2d(16 * conv_unit_ch, z_dim, kernel_size=1, stride=1, bias=False)
         )

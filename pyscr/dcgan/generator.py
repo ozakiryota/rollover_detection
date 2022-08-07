@@ -14,23 +14,19 @@ class Generator(nn.Module):
         self.deconv = nn.Sequential(
             nn.ConvTranspose2d(z_dim, 8 * conv_unit_ch, kernel_size=first_deconv_kernel, stride=1, bias=False),
             nn.BatchNorm2d(8 * conv_unit_ch),
-            nn.LeakyReLU(0.2, inplace=True),
-            # nn.ReLU(inplace=True),
+            nn.ReLU(inplace=True),
 
             nn.ConvTranspose2d(8 * conv_unit_ch, 4 * conv_unit_ch, kernel_size=4, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(4 * conv_unit_ch),
-            nn.LeakyReLU(0.2, inplace=True),
-            # nn.ReLU(inplace=True),
+            nn.ReLU(inplace=True),
 
             nn.ConvTranspose2d(4 * conv_unit_ch, 2 * conv_unit_ch, kernel_size=4, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(2 * conv_unit_ch),
-            nn.LeakyReLU(0.2, inplace=True),
-            # nn.ReLU(inplace=True),
+            nn.ReLU(inplace=True),
 
             nn.ConvTranspose2d(2 * conv_unit_ch, conv_unit_ch, kernel_size=4, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(conv_unit_ch),
-            nn.LeakyReLU(0.2, inplace=True),
-            # nn.ReLU(inplace=True),
+            nn.ReLU(inplace=True),
 
             nn.ConvTranspose2d(conv_unit_ch, 3, kernel_size=4, stride=2, padding=1, bias=False),
             nn.Tanh()
