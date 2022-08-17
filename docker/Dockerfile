@@ -26,7 +26,8 @@ RUN apt-get update && \
 ARG CACHEBUST=1
 ########## rollover_detection ##########
 RUN pip3 install \
-		matplotlib && \
+		matplotlib \
+		tqdm && \
 	cd ~ && \
 	git clone https://github.com/ozakiryota/rollover_detection.git
 ########## Initial position ##########

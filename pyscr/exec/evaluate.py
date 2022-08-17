@@ -3,6 +3,7 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 import random
+from tqdm import tqdm
 
 import torch
 
@@ -112,7 +113,7 @@ class Evaluator:
         label_list = []
         score_list = []
 
-        for i in range(len(self.dataset)):
+        for i in tqdm(range(len(self.dataset))):
             real_image = self.dataset.__getitem__(i)[0].unsqueeze(0).to(self.device)
             label = self.dataset.__getitem__(i)[1]
 
